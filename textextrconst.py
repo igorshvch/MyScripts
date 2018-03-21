@@ -19,11 +19,18 @@ result_find_pattern = (r'.*[Рр]уководствуясь статьями.*?�
 acts_separator_pattern = r'АРБИТРАЖНЫЙ СУД.*?(?=-{66})'
 
 RU_word_strip_pattern = (
+<<<<<<< HEAD
     r'[{0}]+-?[{1}]*-?[{2}]*-?[{3}]*-?[{4}]*'.format(alph,
                                                      alph,
                                                      alph,
                                                      alph,
                                                      alph))
+=======
+    r'[{0}]+-?[{1}]*-?[{2}]*-?[{3}]*'.format(alph,
+                                             alph,
+                                             alph,
+                                             alph))
+>>>>>>> 840ba0e469719b7d76ce9236a194c138b58794bb
 
 RU_word_strip_pattern_with_sentmarks = (
     r'[{0}]+-?[{1}]*-?[{2}]*-?[{3}]*|<S>|</S>'.format(alph,
