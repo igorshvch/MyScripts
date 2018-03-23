@@ -6,6 +6,8 @@ from nltk.corpus import stopwords
 from keras.preprocessing.text import Tokenizer
 from keras.models import Sequential
 from keras.layers import Dense
+from pandas import DataFrame
+from matplotlib import pyplot
 
 def load_doc(filename):
     with open(filename, mode='r') as file:
@@ -108,4 +110,93 @@ def data_preparation():
     Xtest = tokenizer.texts_to_matrix(test_docs, mode='freq')
     print(Xtrain.shape, Xtest.shape)
     return [(Xtrain, ytrain), (Xtest, ytest)]
+
+def model_estimation():
+    data_list = data_preparation()
+    print('Model defined')
+    model = define_model(data_list[0][0].shape[1])
+    print('Start model fitting')
+    model.fit(data_list[0][0], data_list[0][1], epochs=10, verbose=2)
+    loss, acc = model.evaluate(data_list[1][0], data_list[1][1], verbose=0)
+    print('Test accuracy: {}%'.format(acc*100))
+    print('Losses: {}'.format(loss))
+    return model
+
+def prepare_data(train_docs, test_docs, mode):
+    tokenizer = Tokenizer()
+    tokenizer.fit_on_texts(train_docs)
+    Xtrain = tokenizer.texts_to_matrix(train_docs, mode=mode)
+    Xtest = tokenizer.texts_to_matrix(test_docs, mode=mode)
+    return Xtrain, Xtest
+
+def evaluate_mode(Xtrain, ytrain, Xtest, ytest):
+    scores = list()
+    n_repeats = 5
+    n_words = Xtest.shape[1]
+    for i in range(n_repeats):
+        model = Sequential()
+        model.add(Dense(50, input_shape=(n_words,), activation='relu'))
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(
+            loss='binary_crossentropy',
+            optimizer='adam',
+            metrics=['accuracy'])
+        model.fit(Xtrain, ytrain, epochs=10, verbose=2)
+        _, acc = model.evaluate(Xtest, ytest, verbose=0)
+        scores.append(acc)
+        print('{} accuracy: {}'.format((i+1), acc))
+    return scores
+
+def final_test():
+    vocab_filename = (
+        r'C:\Users\EA-ShevchenkoIS'
+        r'\Continuum\anaconda3\MyScripts\Data\vocab.txt')
+    print('Loading vocabulary...')
+    vocab = load_doc(vocab_filename)
+    vocab = set(vocab.split())
+    print('Forming data...')
+    train_docs, ytrain = load_clean_dataset(vocab, True)
+    test_docs, ytest = load_clean_dataset(vocab, False)
+    modes = ['binary', 'count', 'tfidf', 'freq']
+    results = DataFrame()
+    for mode in modes:
+        print('{}. Preparing data'.format(mode))
+        Xtrain, Xtest = prepare_data(train_docs, test_docs, mode)
+        print('{}. Evaluating model'.format(mode))
+        results[mode] = evaluate_mode(Xtrain, ytrain, Xtest, ytest)
+    print(results.describe())
+    results.boxplot()
+    pyplot.show()
+
+def new_model(mode='binary'):
+    vocab_filename = (
+        r'C:\Users\EA-ShevchenkoIS'
+        r'\Continuum\anaconda3\MyScripts\Data\vocab.txt')
+    vocab = load_doc(vocab_filename)
+    vocab = set(vocab.split())
+    train_docs, ytrain = load_clean_dataset(vocab)
+    test_docs, ytest = load_clean_dataset(vocab)
+    tokenizer = create_tokenizer(train_docs)
+    Xtrain = tokenizer.texts_to_matrix(train_docs, mode=mode)
+    Xtest = tokenizer.texts_to_matrix(test_docs, mode=mode)
+    n_words = Xtrain.shape[1]
+    model = define_model(n_words) 
+    model.fit(Xtrain, ytrain, epochs=10, verbose=2)
+    return model, tokenizer
+    
+def predict_sentiment(review, tokenizer):
+    vocab_filename = (
+        r'C:\Users\EA-ShevchenkoIS'
+        r'\Continuum\anaconda3\MyScripts\Data\vocab.txt')
+    vocab = load_doc(vocab_filename)
+    vocab = set(vocab.split())
+    tokens = clean_doc(review)
+    tokens = [w for w in tokens if w in vocab]
+    line = ' '.join(tokens)
+    encoded = tokenizer.texts_to_matrix([line], mode='binary')
+    yhat = model.predict(encoded, verbose=0)
+    percent_pos = yhat[0,0]
+    if round(percent_pos) == 0:
+        return (1-percent_pos), 'NEGATIVE'
+    return percent_pos, 'POSITIVE'
 
