@@ -11,8 +11,12 @@ from keras.preprocessing.text import Tokenizer
 from keras.models import Sequential
 from keras.layers import Dense
 from writer import writer
+from sys import version_info
 
-BASE_PATH = r'C:\Users\EA-ShevchenkoIS\Python36\AP\SimpleBase'
+PyVer = version_info[1]
+
+BASE_PATH = (r'C:\Users\EA-ShevchenkoIS'+
+             r'\Python3{}\AP\SimpleBase'.format(PyVer))
 
 class DB_Con():
     '''
@@ -205,8 +209,8 @@ class NN_Model():
 
 
 class Constructor():
-    def __init__(self):
-        self.DBC = DB_Con()
+    def __init__(self, path=BASE_PATH):
+        self.DBC = DB_Con(path=path)
         self.ATO = ATO()
         self.DI = DocIndex()
         self.NNM = NN_Model()
@@ -237,8 +241,8 @@ class Constructor():
         right_toks = self.parts_to_tokens(right_parts)
         wrong_toks = self.parts_to_tokens(wrong_parts)
         print(len(right_toks), len(wrong_toks))
-        self.count.update(right_toks)
-        self.count.update(wrong_toks)
+        self.count.update(w for tks in right_toks for w in tks)
+        self.count.update(w for tks in wrong_toks for w in tks)
         print(len(self.count)) #tags '02_DEM', '07_REASON', len = 2314
         right_lines = self.parts_to_lines(right_parts,
                                           self.count,
@@ -278,7 +282,7 @@ class Constructor():
         print(len(lines))
         data = [self.DI.convert(line)
                 for line in lines]
-        print(data.shape)
+        print(len(data))
         predictions = [self.NNM.predict(vect, threshold)
                        for vect in data]
         results = [(splitted[i], predictions[i])
