@@ -273,7 +273,8 @@ class Constructor():
         splitted = raw_text.split('\n')
         lines = [self.ATO.text_to_lines(self.count, par,
                                         min_ocur=ocur_com[0],
-                                        most_com=ocur_com[1])]
+                                        most_com=ocur_com[1])
+                for par in splitted]
         print(len(lines))
         data = [self.DI.convert(line)
                 for line in lines]
