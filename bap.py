@@ -64,8 +64,8 @@ class DB_Con():
         }
         data = instances[data_key]
         data_base.close()
-        self.data = data
-        print('Data \'{}\' is stored to .data attribute'.format(data_key))
+        return data
+        #print('Data \'{}\' is stored to .data attribute'.format(data_key))
 
 class BTO():
     '''
@@ -143,9 +143,6 @@ class ATO(BTO):
             tokens = [parser(w) for w in tokens]
         return tokens
     
-    def v_update(self, vocab, tokens, **kwargs):
-        return vocab.update(tokens)
-    
     def text_to_lines(self, vocab, text, min_ocur=None, most_com=None):
         if min_ocur:
             vocab = [k for k,v in vocab.items() if v > min_ocur]
@@ -198,111 +195,100 @@ class NN_Model():
         _, acc = self.model.evaluate(xtest, ytest, verbose=0)
         print('Test Accuracy: %f' % (acc*100))
     
-    def predict(self, data):
+    def predict(self, data, threshold=0.85):
         result = self.model.predict(data, verbose=0)
-        #if type(result) == list:
-        #    print('Strange')
-        #    return 0, '      NEGATIVE'
         percent_pos = result[0,0]
         if round(percent_pos) == 0:
-            return (1-percent_pos), '# NEGATIVE'
-        elif percent_pos >= 0.85:
+            return '  N' #(1-percent_pos), '# NEGATIVE'
+        elif percent_pos >= threshold:
             return percent_pos, '# POSITIVE'
-        #else:
-        #    return percent_pos, '      POSITIVE'
 
 
 class Constructor():
-    def __init__(self, ocur_com=(1, None)):
+    def __init__(self):
         self.DBC = DB_Con()
         self.ATO = ATO()
-        self.di = DocIndex()
+        self.DI = DocIndex()
         self.NNM = NN_Model()
         self.count = Counter()
-        self.ocur_com = ocur_com
+        self.acts_list = self.DBC.extract_data('marked_acts')
     
-    def load_text(self):
-        '''
-        Load raw_text data to .text attribute
-        '''
-        self.DBC.extract_data('marked_acts')
-        self.raw_text_list = self.DBC.data
-
-    def process_text(self,
-                     tag='02_DEM',
-                     new_vocab=True,
-                     ocur_com=(1, None)):
-        part_holder = []
-        for act in self.raw_text_list:
-            part_holder.append(self.ATO.find_tagged_part(tag, act))
-        print('Parts extracted')
-        tokenized = []
-        for part in part_holder:
-            tokenized.append(self.ATO.text_to_tokens(part))
-        print('Parts are tokenized')
-        if new_vocab:
-            self.count = Counter()
-            for tokens in tokenized:
-                self.ATO.v_update(self.count, tokens)
-            print('Vocab created')
-        vocab_local_copy = self.count
-        lines_holder = []
-        for part in part_holder:
-            line = self.ATO.text_to_lines(vocab_local_copy,
-                                           part,
-                                           min_ocur=ocur_com[0],
-                                           most_com=ocur_com[1])
-            lines_holder.append(line)
-        print('Lines are created')
-        return lines_holder
-        
-    def make_labels(self, length):
-        l2 = length//2
+    def load_acts_parts(self, tag):
+        acts_parts = [self.ATO.find_tagged_part(tag, act)
+                      for act in self.acts_list]
+        return acts_parts
+    
+    def parts_to_tokens(self, acts_parts):
+        tokens_list = [self.ATO.text_to_tokens(part)
+                  for part in acts_parts]
+        return tokens_list
+    
+    def parts_to_lines(self, acts_parts, vocab, ocur_com=(1, None)):
+        lines = [self.ATO.text_to_lines(vocab, part,
+                                        min_ocur=ocur_com[0],
+                                        most_com=ocur_com[1])
+                 for part in acts_parts]
+        return lines
+    
+    def text_to_lines(self, tag1, tag2, ocur_com=(1,None)):
+        right_parts = self.load_acts_parts(tag1)
+        wrong_parts = self.load_acts_parts(tag2)
+        print(len(right_parts), len(wrong_parts))
+        right_toks = self.parts_to_tokens(right_parts)
+        wrong_toks = self.parts_to_tokens(wrong_parts)
+        print(len(right_toks), len(wrong_toks))
+        self.count.update(right_toks)
+        self.count.update(wrong_toks)
+        print(len(self.count)) #tags '02_DEM', '07_REASON', len = 2314
+        right_lines = self.parts_to_lines(right_parts,
+                                          self.count,
+                                          ocur_com=ocur_com)
+        wrong_lines = self.parts_to_lines(wrong_parts,
+                                          self.count,
+                                          ocur_com=ocur_com)
+        print(len(right_lines), len(wrong_lines))
+        return right_lines+wrong_lines
+    
+    def labbeling(self, lines):
+        l2 = len(lines)//2
         pos = [1 for i in range(l2)]
         neg = [0 for i in range(l2)]
         return pos+neg
-        
-    def tokenize_lines(self, lines, mode='binary'):
-        self.di.create_tokenizer(lines)
-        return self.di.convert(lines, mode=mode)
     
-    def automize(self, tag1, tag2, ocur_com=(1, None), mode='binary'):
-        self.load_text()
-        lines1 = self.process_text(tag=tag1, new_vocab=True, ocur_com=ocur_com)
-        lines2 = self.process_text(tag=tag2, new_vocab=True, ocur_com=ocur_com)
-        all_lines = lines1+lines2
-        x_lines = self.tokenize_lines(all_lines, mode=mode)
-        y_labels = self.make_labels(len(all_lines))
-        self.NNM.define_model(x_lines.shape[1])
-        self.NNM.training(x_lines, y_labels)
+    def document_index(self, lines):
+        self.DI.create_tokenizer(lines)
+        return self.DI.convert(lines)
+    
+    def training(self, x_data, y_labels):
+        print(len(x_data), len(y_labels))
+        print(x_data.shape) #tags '02_DEM', '07_REASON', .shape = (202, 981)
+        self.NNM.define_model(x_data.shape[1])
+        self.NNM.training(x_data, y_labels)
+    
+    def prediction(self,
+                   raw_text,
+                   threshold=0.85,
+                   ocur_com=(1, None),
+                   write=True):
+        splitted = raw_text.split('\n')
+        lines = [self.ATO.text_to_lines(self.count, par,
+                                        min_ocur=ocur_com[0],
+                                        most_com=ocur_com[1])]
+        print(len(lines))
+        data = [self.DI.convert(line)
+                for line in lines]
+        print(data.shape)
+        predictions = [self.NNM.predict(vect, threshold)
+                       for vect in data]
+        results = [(splitted[i], predictions[i])
+                   for i in range(len(splitted))]
+        if write:
+            from datetime import datetime as dt
+            now = str(dt.now())[:-6]
+            writer(results, now)
+        else:
+            return results
 
-    def auto_predict(self,
-                     raw_text_path=r'C:\Users\EA-ShevchenkoIS\test.txt',
-                     ocur_com=(1, None),
-                     mode='binary',
-                     file_name='test23'):
-        with open(raw_text_path) as file:
-            text = file.read()
-        splitted = text.split('\n')
-        #for i in range(len(splitted)-1, 0, 1):
-        #    if splitted[i] =='':
-        #        del splitted[i]
-        vocab_local_copy = self.count
-        predictions = []
-        for par in splitted:
-            line = self.ATO.text_to_lines(vocab_local_copy,
-                                          par,
-                                          min_ocur=ocur_com[0],
-                                          most_com=ocur_com[1])
-            data = self.di.convert(line, mode=mode)
-            print(type(data), data.shape)
-            pred = self.NNM.predict(data)
-            predictions.append(pred)
-        results = []
-        for i in range(len(splitted)):
-            results.append((splitted[i], predictions[i]))
-        writer(results, file_name)
-        
 
 
 
