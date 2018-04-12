@@ -1,7 +1,7 @@
 import re
 import shelve
 import pymorphy2
-import numpy
+import pickle
 from string import punctuation as string_punc
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
@@ -11,8 +11,20 @@ from keras.preprocessing.text import Tokenizer
 from keras.models import Sequential
 from keras.layers import Dense
 from writer import writer
+from sys import version_info
 
-BASE_PATH = r'C:\Users\EA-ShevchenkoIS\Python36\AP\SimpleBase'
+PyVer = version_info[1]
+
+BASE_PATH = (r'C:\Users\EA-ShevchenkoIS'+
+             r'\Python3{}\AP\SimpleBase'.format(PyVer))
+
+PAIRS = ('02_DEM', '07_REASON'), \
+#('03_FIRST_COURT', '02_DEM'), \
+#('04_APPEAL', '02_DEM'), \
+('06_DESCRP_END', '02_DEM'), \
+('07_REASON', '02_DEM'), \
+#('08_REASON_END', '02_DEM'), \
+('09_RESULT', '02_DEM')
 
 class DB_Con():
     '''
@@ -171,10 +183,26 @@ class DocIndex():
 
     def convert(self, list_of_texts, mode='binary'):
         return self.tokenizer.texts_to_matrix(list_of_texts, mode=mode)
+    
+    def save_tokenizer(self, file_name):
+        if self.tokenizer:
+            with open(file_name, mode='wb') as holder:
+                pickle.dump(self.tokenizer,
+                            holder,
+                            protocol=pickle.HIGHEST_PROTOCOL)
+            print('Tokenizer is saved')
+        else:
+            print('Error! Tokenizer hasn\'t been constructed yet!')
+    
+    def load_tokenizer(self, file_name):
+        with open(file_name, mode='rb') as holder:
+            self.tokenizer = pickle.load(holder)
+            print('Tokenizer was loaded to memory')
 
 class NN_Model():
     def __init__(self):
         self.model = None
+        self.outter_tag=None
     
     def define_model(self, input_layer_length):
         model = Sequential()
@@ -198,15 +226,15 @@ class NN_Model():
     def predict(self, data, threshold=0.85):
         result = self.model.predict(data, verbose=0)
         percent_pos = result[0,0]
-        if round(percent_pos) == 0:
-            return '  N' #(1-percent_pos), '# NEGATIVE'
-        elif percent_pos >= threshold:
-            return '   ' + str(percent_pos) + '# POSITIVE'
+        if percent_pos < threshold:
+            return '' #(1-percent_pos), '# NEGATIVE'
+        else:
+            return '   ' + str(percent_pos) + '# {}'.format(self.outter_tag)
 
 
 class Constructor():
-    def __init__(self):
-        self.DBC = DB_Con()
+    def __init__(self, path=BASE_PATH):
+        self.DBC = DB_Con(path=path)
         self.ATO = ATO()
         self.DI = DocIndex()
         self.NNM = NN_Model()
@@ -231,6 +259,7 @@ class Constructor():
         return lines
     
     def text_to_lines(self, tag1, tag2, ocur_com=(1,None)):
+        self.NNM.outter_tag = tag1
         right_parts = self.load_acts_parts(tag1)
         wrong_parts = self.load_acts_parts(tag2)
         print(len(right_parts), len(wrong_parts))
@@ -276,30 +305,43 @@ class Constructor():
                                         most_com=ocur_com[1])
                 for par in splitted]
         print(len(lines))
-        data = [self.DI.convert(line)
+        data = [self.DI.convert([line])
                 for line in lines]
         print(len(data))
-        predictions = []
+        predictions = [self.NNM.predict(vect, threshold=threshold)
+                       for vect in data]
         # insted of using self.NNM.predict() because it causes error
         # by randomly changing 'pred' var data type from np.array to list
-        _inner_counter = 0
-        for vect in data:
-            print ('Prediction inner counter = {}'.format(_inner_counter))
-            pred = self.NNM.model.predict(vect, verbose=0)
-            _inner_counter += 1
-            percent_pos = pred[0,0]
-            if percent_pos < threshold:
-                predictions.append('  N')
-            else:
-                predictions.append('   ' + str(percent_pos) + '# POSITIVE')
+        #_inner_counter = 0
+        #for vect in data:
+        #    print ('Prediction inner counter = {}'.format(_inner_counter))
+        #    pred = self.NNM.model.predict(vect, verbose=0)
+        #    _inner_counter += 1
+        #    if isinstance(pred, list):
+        #        print('\tit is list')
+        #        predictions.append('  N')
+        #        continue
+        #    percent_pos = pred[0,0]
+        #    if percent_pos < threshold:
+        #        predictions.append('  N')
+        #    else:
+        #        predictions.append('   ' + str(percent_pos) + '# POSITIVE')
         results = [splitted[i] + predictions[i]
                    for i in range(len(splitted))]
         if write:
             from datetime import datetime as dt
-            now = str(dt.now())[:-6]
+            now = str(dt.now())[12:-7].replace(':', '-')
             writer(results, now)
         else:
             return results
+    
+    def auto_mode(self, tag1, tag2, raw_text):
+        lines = self.text_to_lines(tag1, tag2)
+        x_data = self.document_index(lines)
+        y_labs = self.labbeling(lines)
+        self.training(x_data, y_labs)
+        self.prediction(raw_text)
+        
 
 
 

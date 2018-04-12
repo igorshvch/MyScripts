@@ -19,6 +19,6 @@ or a string object itselfe'''
         with open('{}.txt'.format('MYWRITE_'+str(today())+'_'+file_name_string
                                   if prefix=='custome'
                                   else prefix+'_'+file_name_string),
-                  mode='a') as file:
+                                  mode='a') as file:
             file.write(iterable_object)
     print('OK')
