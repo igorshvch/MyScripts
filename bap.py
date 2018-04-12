@@ -201,7 +201,7 @@ class NN_Model():
         if round(percent_pos) == 0:
             return '  N' #(1-percent_pos), '# NEGATIVE'
         elif percent_pos >= threshold:
-            return percent_pos, '# POSITIVE'
+            return '   ' + str(percent_pos) + '# POSITIVE'
 
 
 class Constructor():
@@ -237,8 +237,8 @@ class Constructor():
         right_toks = self.parts_to_tokens(right_parts)
         wrong_toks = self.parts_to_tokens(wrong_parts)
         print(len(right_toks), len(wrong_toks))
-        self.count.update(right_toks)
-        self.count.update(wrong_toks)
+        self.count.update(w for tokens in right_toks for w in tokens)
+        self.count.update(w for tokens in wrong_toks for w in tokens)
         print(len(self.count)) #tags '02_DEM', '07_REASON', len = 2314
         right_lines = self.parts_to_lines(right_parts,
                                           self.count,
@@ -278,10 +278,21 @@ class Constructor():
         print(len(lines))
         data = [self.DI.convert(line)
                 for line in lines]
-        print(data.shape)
-        predictions = [self.NNM.predict(vect, threshold)
-                       for vect in data]
-        results = [(splitted[i], predictions[i])
+        print(len(data))
+        predictions = []
+        # insted of using self.NNM.predict() because it causes error
+        # by randomly changing 'pred' var data type from np.array to list
+        _inner_counter = 0
+        for vect in data:
+            print ('Prediction inner counter = {}'.format(_inner_counter))
+            pred = self.NNM.model.predict(vect, verbose=0)
+            _inner_counter += 1
+            percent_pos = pred[0,0]
+            if percent_pos < threshold:
+                predictions.append('  N')
+            else:
+                predictions.append('   ' + str(percent_pos) + '# POSITIVE')
+        results = [splitted[i] + predictions[i]
                    for i in range(len(splitted))]
         if write:
             from datetime import datetime as dt
