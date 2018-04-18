@@ -1,9 +1,9 @@
 import re
 import numpy as np
 import pymorphy2
-import os
 import csv
 import pickle
+import pathlib as pthl
 from time import time, strftime
 from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer
@@ -14,7 +14,8 @@ from nltk.corpus import stopwords
 
 # Each class method with leading single underscore in its title
 # needs to be modified or removed or was provided for bc reasons.
-# All such methods are error prone and not recomended for usage
+# All such methods (except specified fo bc) are error prone
+# and not recomended for usage
 
 #acceptable data format:
 #file_name.txt:
@@ -28,6 +29,7 @@ from nltk.corpus import stopwords
 #--------------------paragraph
 #                    (string_obj)
 
+#CONSTANTS:
 PATTERN_ACT_CLEAN = (
     r'-{66}\nКонсультантПлюс.+?-{66}\n'
 )
@@ -36,7 +38,6 @@ PATTERN_ACT_SEP = (
 )
 
 MORPH = pymorphy2.MorphAnalyzer()
-
 
 PATH_TO_ACTS = (
     r'C:\Users\EA-ShevchenkoIS\Documents'+
@@ -62,6 +63,14 @@ class ReadWriteTool():
         self.enc=enc
         print('RWT class created')
 
+    def create_acts_subdirs(self, path, interdir_name=''):
+        p = pthl.Path(path)
+        files = sorted([fle for fle in p.iterdir()])
+        subdirs = [p.joinpath(interdir_name, fle.stem) for fle in files]
+        for subdir in subdirs:
+            subdir.mkdir(parents=True, exist_ok=True)
+        return subdirs    
+
     def load_text(self, path):
         with open(path, mode='r', encoding=self.enc) as fle:
             text = fle.read()
@@ -72,21 +81,30 @@ class ReadWriteTool():
             text = fle.read()
         return text[1:-1]
 
-    def create_text_loading_paths_list(self, top_dir):
-        return [os.path.join(root_dir, fle)
-                for root_dir, _, fles in os.walk(top_dir)
-                for fle in fles]
+    def collect_exist_file_paths(self, top_dir, suffix='.txt'):
+        holder = []
+        def inner_func(top_dir, suffix):
+            p = pthl.Path(top_dir)
+            nonlocal holder
+            store = [path_obj for path_obj in p.iterdir()]
+            for path_obj in store:
+                if path_obj.is_dir():
+                    inner_func(path_obj, suffix)
+                elif path_obj.suffix == suffix:
+                    holder.append(path_obj)
+        inner_func(top_dir, suffix)
+        return sorted(holder)
         
     def iterate_text_loading(self, top_dir, bc=False):
         '''
         Return generator object iterating over all text files
         in the top_dir subdirectories.
         '''
-        paths = self.create_text_loading_paths_list(top_dir)
+        paths = self.collect_exist_file_paths(top_dir)
         print(
             len(paths),
             'The first file in the queue is:\n{}'.format(paths[0]),
-            sep='### '
+            sep=' ### '
         )
         if not bc:
             return (self.load_text(path)
@@ -95,33 +113,22 @@ class ReadWriteTool():
             return (self._back_comp_load_text(path)
                     for path in paths)
     
-    def write_text(self, text, path, custom_enc=True):
-        with open(path, mode='w') as fle:
-            if custom_enc:
-                fle.write(text.encode(encoding=self.enc))
-            else:
+    def write_text(self, text, path):
+        with open(path, mode='w', encoding=self.enc) as fle:
                 fle.write(text)
     
-    def create_text_writing_paths_list(self,
-                                       fles_names_list,
-                                       new_dir=None,
-                                       date=False):
-        if date:
-            date = strftime('%Y-%m-%d')
-            new_dir = (date+'_'+new_dir)
-        paths_holder = []
-        for fle in fles_names_list:
-            dir_new = os.path.join(os.path.dirname(fle), new_dir)
-            new_path = os.path.join(dir_new, os.path.basename(fle))
-            if not os.path.exists(dir_new):
-                os.mkdir(dir_new)
-            paths_holder.append(new_path)
-        return paths_holder
+    def create_writing_paths(self, file_quant, path, suffix='.txt'):
+        p = pthl.Path(path)
+        file_paths = [
+            p.joinpath(str(i)).with_suffix(suffix)
+            for i in range(file_quant)
+        ]
+        return file_paths
 
-    def itreate_text_writing(self, paths, texts):
-        pairs = zip(paths, texts)
+    def iterate_text_writing(self, texts, paths):
+        pairs = zip(texts, paths)
         for item in pairs:
-            path, text = item
+            text, path = item
             self.write_text(text, path)
     
     def write_text_to_csv(self,
@@ -164,7 +171,7 @@ class ReadWriteTool():
         Return generator object iterating over all binary files
         in the top_dir subdirectories.
         '''
-        paths = self.create_text_loading_paths_list(top_dir)#, txt=False)
+        paths = self.collect_exist_file_paths(top_dir)
         print(
             len(paths),
             'The first file in the queue is:\n{}'.format(paths[0]),
@@ -206,13 +213,6 @@ class CustomTextProcessor():
             '{} acts were found'.format(len(separated_acts))
         )
         return separated_acts
-
-    def text_separation(self, kwarg):
-        options = {
-            'option1':lambda : print('option1 - not implemented!'),
-            'option2':lambda : print('option2 - not implemented!')
-        }
-        return options[kwarg]()
             
     def tokenize(self, text):
         text = text.lower().strip()
@@ -241,7 +241,7 @@ class CustomTextProcessor():
             pars_list = text.split('\n')
             for par in pars_list:
                 text_holder.append(self.full_process(par))
-            holder.append(text.holder)
+            holder.append(text_holder)
         return holder
     
     def words_count(self, acts_gen):
@@ -298,17 +298,6 @@ class BCTextProcessor():
         t1 = time()
         print('Words were counted in {} seconds'.format(t1-t0))
         return vocab
-    
-    def _rewrite(self, top_dir=PATH_TO_ACTS):
-        rwt = ReadWriteTool()
-        read_paths = rwt.create_text_loading_paths_list(top_dir)
-        write_paths = rwt.create_text_writing_paths_list(read_paths, date=False)
-        write_paths = deque(write_paths)
-        acts = rwt.iterate_text_loading(top_dir, bc=True)
-        for act in acts:
-            pars_list = self.process_act(act)
-            pars_list = [par.split() for par in pars_list]
-            rwt._write_pickle(pars_list, write_paths.popleft())
 
 
 class Vectorization():
@@ -337,20 +326,43 @@ class Constructor():
         self.CTP = CustomTextProcessor()
         self.BCTP = BCTextProcessor() #execute for bc reasons
         self.Vct = Vectorization()
-        self.path1 = path_to_acts
-        self.path2 = path_to_conclusions
-        self.path3 = path_to_output
+        self.path1 = pthl.Path(path_to_acts)
+        self.path2 = pthl.Path(path_to_conclusions)
+        self.path3 = pthl.Path(path_to_output)
         self.holder = []
         self.tracker = []
         print('Constructor class created')
     
+    def divide_and_norm_acts(self,
+                             inter_dir = 'Norm1',
+                             parser = 'parser2'):
+        self.CTP.change_parser(pars_type=parser)
+        raw_files = self.RWT.iterate_text_loading(self.path1)
+        subdirs = deque(self.RWT.create_acts_subdirs(
+            self.path1,
+            interdir_name=inter_dir
+        ))
+        for fle in raw_files:
+            print('Starting new file processing!')
+            cleaned = self.CTP.court_decisions_cleaner(fle)
+            divided = self.CTP.court_decisions_separator(cleaned)
+            print('\tStrating normalization!')
+            t0 = time()
+            normalized = self.CTP.iterate_full_processing(divided)
+            print('\tNormalization complete in {} seconds!'.format(time()-t0))
+            file_paths = self.RWT.create_writing_paths(
+                len(divided),
+                subdirs.popleft()
+            )
+            self.RWT.iterate_text_writing(normalized, file_paths)
+
     def start_acts_iteration(self):
         '''
         Return generator object over paths to texts
         '''
         return self.RWT.iterate_text_loading(self.path1, bc=True)
     
-    def all_words(self):
+    def _back_comp_all_words(self):
         return self.BCTP.words_count(
             self.start_acts_iteration()
         )
@@ -405,9 +417,9 @@ class Constructor():
                 'Results were sorted!',
                 'Time in seconds: {}'.format(t2-t1)
             )
-            name = concl[:40]+'.csv'
+            name = concl[:40]
             self.RWT.write_text_to_csv(
-                os.path.join(self.path3, name),
+                self.path3.joinpath(name).with_suffix('.csv'),
                 holder,
                 header=('Суд','Реквизиты','Косинус'),
                 zero_string = concl
@@ -428,14 +440,13 @@ class Constructor():
         print('Execution complete')
     
     def export_vocab_to_csv(self, vocab=None, file_name='count_uniq'):
-        file_name+='.csv'
-        path = os.path.join(self.path3, file_name)
+        path = self.path3.joinpath(file_name).with_suffix('.csv')
         if vocab:
             print('Sorting vocabulary')
             srt_vocab = vocab.most_common()
         else:
             print('Creating vocabulary, counting words...')
-            vocab = self.all_words()
+            vocab = self._back_comp_all_words() #needs to be changed to .all_words()
             srt_vocab = vocab.most_common()
         self.RWT.write_text_to_csv(
             path,
