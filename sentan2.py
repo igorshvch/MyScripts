@@ -18,16 +18,18 @@ from nltk.corpus import stopwords
 # and not recomended for usage
 
 #acceptable data format:
+#
 #file_name.txt:
 #----whole file
 #    (string_obj)
+#
 #file_name.txt:
 #----whole file wrapper:
 #    (list_obj)
 #------------whole paragraph wrapper:
 #            (list_obj)
-#--------------------paragraph
-#                    (string_obj)
+#--------------------splitted words in paragraph
+#                    (string_objs)
 
 #CONSTANTS:
 PATTERN_ACT_CLEAN = (
@@ -37,22 +39,8 @@ PATTERN_ACT_SEP = (
     r'\n\n\n-{66}\n\n\n'
 )
 
+#pymoprhy2 analyzer instance
 MORPH = pymorphy2.MorphAnalyzer()
-
-PATH_TO_ACTS = (
-    r'C:\Users\EA-ShevchenkoIS\Documents'+
-    r'\Рабочая\2018-04\Обработка текстов'+
-    r'\выборка\viborka_aktov'
-)
-PATH_TO_CONCLUSIONS = (
-    r'C:\Users\EA-ShevchenkoIS\Documents'+
-    r'\Рабочая\2018-04\Обработка текстов'+
-    r'\выводы 16.04'
-)
-PATH_TO_OUTPUT = (
-    r'C:\Users\EA-ShevchenkoIS\Documents'+
-    r'\Рабочая\2018-04\Обработка текстов'
-)
 
 
 class ReadWriteTool():
@@ -63,10 +51,23 @@ class ReadWriteTool():
         self.enc=enc
         print('RWT class created')
 
-    def create_acts_subdirs(self, path, interdir_name=''):
+    def create_dirs(self, dir_struct):
+        paths = []
+        for path in dir_struct.values():
+            path.mkdir(parents=True, exist_ok=True)
+            paths.append(str(path))
+        print('Created directories:')
+        for strg in sorted(paths):
+            print('\t'+strg)
+    
+    def create_acts_subdirs(self, path, des_folder):
         p = pthl.Path(path)
         files = sorted([fle for fle in p.iterdir()])
-        subdirs = [p.joinpath(interdir_name, fle.stem) for fle in files]
+        subdirs = [
+            des_folder.joinpath(fle.stem)
+            for fle in files
+                if fle.is_file()
+        ]
         for subdir in subdirs:
             subdir.mkdir(parents=True, exist_ok=True)
         return subdirs    
@@ -95,7 +96,7 @@ class ReadWriteTool():
         inner_func(top_dir, suffix)
         return sorted(holder)
         
-    def iterate_text_loading(self, top_dir, bc=False):
+    def iterate_text_loading(self, top_dir):
         '''
         Return generator object iterating over all text files
         in the top_dir subdirectories.
@@ -106,12 +107,7 @@ class ReadWriteTool():
             'The first file in the queue is:\n{}'.format(paths[0]),
             sep=' ### '
         )
-        if not bc:
-            return (self.load_text(path)
-                    for path in paths)
-        else:
-            return (self._back_comp_load_text(path)
-                    for path in paths)
+        return (self.load_text(path) for path in paths)
     
     def write_text(self, text, path):
         with open(path, mode='w', encoding=self.enc) as fle:
@@ -155,30 +151,35 @@ class ReadWriteTool():
             for row in iter_txt_holder:
                 writer.writerow(row)
 
-    def _write_pickle(self, py_obj, path):
+    def write_pickle(self, py_obj, path):
         with open(path, mode='wb') as file_name:
             pickle.dump(py_obj,
                         file_name,
                         protocol=pickle.HIGHEST_PROTOCOL)
+
+    def iterate_pickle_writing(self, py_objs, paths):
+        pairs = zip(py_objs, paths)
+        for item in pairs:
+            py_obj, path = item
+            self.write_pickle(py_obj, path)
         
-    def _load_pickle(self, path):
+    def load_pickle(self, path):
         with open(path, 'rb') as fle:
             data = pickle.load(fle)
         return data
     
-    def _iterate_pickles_loading(self, top_dir):
+    def iterate_pickle_loading(self, top_dir):
         '''
         Return generator object iterating over all binary files
         in the top_dir subdirectories.
         '''
-        paths = self.collect_exist_file_paths(top_dir)
+        paths = self.collect_exist_file_paths(top_dir, suffix='')
         print(
             len(paths),
             'The first file in the queue is:\n{}'.format(paths[0]),
             sep='### '
         )
-        return (self._load_pickle(path)
-                for path in paths)
+        return (self.load_pickle(path) for path in paths)
     
 
 class CustomTextProcessor():
@@ -198,6 +199,9 @@ class CustomTextProcessor():
     def __init__(self, pars_type='parser2'):
         self.parser = CustomTextProcessor.options[pars_type]
         print('CTW class created')
+    
+    def change_parser(self, pars_type='parser2'):
+        self.parser = CustomTextProcessor.options[pars_type]
 
     def court_decisions_cleaner(self, text):
         t0 = time()
@@ -216,23 +220,54 @@ class CustomTextProcessor():
             
     def tokenize(self, text):
         text = text.lower().strip()
-        return [token for token in re.split('\W', text) if len(token) > 1]
+        return [token for token in re.split('\W', text) if len(token)>1]
     
-    def lemmatize(self, tokens_list):
-        parser=self.parser
-        if parser:
+    def iterate_tokenization(self, iter_obj):
+        holder = []
+        for text in iter_obj:
+            text_holder=[]
+            pars_list = text.split('\n')
+            for par in pars_list:
+                text_holder.append(self.tokenize(par))
+            holder.append(text_holder)
+        return holder
+    
+    def lemmatize(self, tokens_list, par_type='parser2'):
+        self.change_parser(pars_type=par_type)
+        parser = self.parser
+        if par_type == 'parser2':
             return [parser(token) for token in tokens_list]
         else:
-            raise BaseException('Parser wasn\'t defined during the class creation!')
+            result = []
+            for token in tokens_list:
+                try:
+                    norm = parser(token)
+                except:
+                    norm = token
+                result.append(norm)
+            return result
     
-    def change_parser(self, pars_type='parser2'):
-        self.parser = CustomTextProcessor.options[pars_type]
+    def lemmatize_by_dict(self, lem_dict, tokens_list):
+        return [lem_dict[token] for token in tokens_list]
+    
+    def iterate_lemmatize_by_dict(self, lem_dict, acts_gen):
+        holder = []
+        print('Start normalization!')
+        t0 = time()
+        for act in acts_gen:
+            act = [
+                self.lemmatize_by_dict(lem_dict, par)
+                for par in act
+            ]
+            holder.append(act)
+        print('Normalization complete in {} seconds'.format(time()-t0))
+        return holder
     
     def full_process(self, text):
         tokens = self.tokenize(text)
         lemms = self.lemmatize(tokens)
-        clear_text = ' '.join(lemms)
-        return clear_text
+        #clear_text = ' '.join(lemms)
+        return lemms #clear_text
     
     def iterate_full_processing(self, iter_obj):
         holder = []
@@ -245,47 +280,6 @@ class CustomTextProcessor():
         return holder
     
     def words_count(self, acts_gen):
-        t0 = time()
-        vocab = Counter()
-        for act in acts_gen:
-            words = [
-                w
-                for par in act
-                for w in par.split()
-            ]
-            vocab.update(words)
-        t1 = time()
-        print('Words were counted in {} seconds'.format(t1-t0))
-        return vocab
-
-class BCTextProcessor():
-    '''
-    API to process already stored acts. Implemented for bc reasons
-    '''
-    def __init__(self):
-        print('BCTP class created')
-
-    def process_act(self, act):
-        act = re.subn('[\'\]\[]', '', act)[0]
-        pars_list = act.split(', ')
-        return pars_list
-    
-    def words_count(self, acts_gen):
-        t0 = time()
-        vocab = Counter()
-        for act in acts_gen:
-            pars_list = self.process_act(act)
-            words = [
-                w
-                for par in pars_list
-                for w in par.split()
-            ]
-            vocab.update(words)
-        t1 = time()
-        print('Words were counted in {} seconds'.format(t1-t0))
-        return vocab
-    
-    def words_count_bin(self, acts_gen):
         t0 = time()
         vocab = Counter()
         for act in acts_gen:
@@ -318,60 +312,85 @@ class Vectorization():
 
 class Constructor():
     def __init__(self,
-                 path_to_acts=PATH_TO_ACTS,
-                 path_to_conclusions=PATH_TO_CONCLUSIONS,
-                 path_to_output=PATH_TO_OUTPUT,
-                 enc='cp1251'):
+                 enc='cp1251',
+                 dir_structure=None):
         self.RWT = ReadWriteTool(enc=enc)
         self.CTP = CustomTextProcessor()
-        self.BCTP = BCTextProcessor() #execute for bc reasons
         self.Vct = Vectorization()
-        self.path1 = pthl.Path(path_to_acts)
-        self.path2 = pthl.Path(path_to_conclusions)
-        self.path3 = pthl.Path(path_to_output)
-        self.holder = []
-        self.tracker = []
+        if dir_structure:
+            self.dir_struct = dir_structure
+            print(
+                "Dir structure dictionary must have the following "
+                +"'{key : value} pairs:\n"
+                +"'{'MainRoot' : dir_path,\n"
+                +"'Raw_text' : dir_path,\n"
+                +"'Divided_and_tokenized' : dir_path,\n"
+                +"'Normalizes_by_parser1' : dir_path,\n"
+                +"'Normalized_by_parser2' : dir_path,\n"
+                +"'Conclusions' : dir_path,\n"
+                +"'Statistics_and_data' : dir_path,\n"
+                +"'Results' : dir_path}\n"
+                +"Othervise please use built-in presets!"
+            )
+        else:
+            self.dir_struct = {
+                'MainRoot': (
+                    pthl.Path().home().joinpath('TextProcessing')
+                ),
+                'Raw_text': (
+                    pthl.Path().home().joinpath('TextProcessing','RawText')
+                ),
+                'Divided_and_tokenized': (
+                    pthl.Path().home().joinpath('TextProcessing','DivToks')
+                ),
+                'Normalizes_by_parser1': (
+                    pthl.Path().home().joinpath('TextProcessing','Norm1')
+                ),
+                'Normalized_by_parser2': (
+                    pthl.Path().home().joinpath('TextProcessing','Norm2')
+                ),
+                'Conclusions': (
+                    pthl.Path().home().joinpath('TextProcessing', 'Conclusions')
+                ),
+                'Statistics_and_data': (
+                    pthl.Path().home().joinpath('TextProcessing', 'StatData')
+                ),
+                'Results': (
+                    pthl.Path().home().joinpath('TextProcessing', 'Results')
+                )
+            }
         print('Constructor class created')
     
-    def divide_and_norm_acts(self,
-                             inter_dir = 'Norm1',
-                             parser = 'parser2'):
-        self.CTP.change_parser(pars_type=parser)
-        raw_files = self.RWT.iterate_text_loading(self.path1)
+    def create_dir_struct(self):
+        self.RWT.create_dirs(self.dir_struct)     
+
+    def divide_and_tokenize_acts(self,
+                                 inter_dir = 'DivTok'):
+        raw_files = self.RWT.iterate_text_loading(self.dir_struct['Raw_text'])
         subdirs = deque(self.RWT.create_acts_subdirs(
-            self.path1,
-            interdir_name=inter_dir
+            path = self.dir_struct['Raw_text'],
+            des_folder = self.dir_struct['Divided_and_tokenized']
         ))
         for fle in raw_files:
             print('Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
             divided = self.CTP.court_decisions_separator(cleaned)
-            print('\tStrating normalization!')
+            print('\tStrating tokenization!')
             t0 = time()
-            normalized = self.CTP.iterate_full_processing(divided)
-            print('\tNormalization complete in {} seconds!'.format(time()-t0))
+            tokenized = self.CTP.iterate_tokenization(divided)
+            print('\tTokenization complete in {} seconds!'.format(time()-t0))
             file_paths = self.RWT.create_writing_paths(
                 len(divided),
-                subdirs.popleft()
+                subdirs.popleft(),
+                suffix=''
             )
-            self.RWT.iterate_text_writing(normalized, file_paths)
-
-    def start_acts_iteration(self):
-        '''
-        Return generator object over paths to texts
-        '''
-        return self.RWT.iterate_text_loading(self.path1, bc=True)
-    
-    def _back_comp_all_words(self):
-        return self.BCTP.words_count(
-            self.start_acts_iteration()
-        )
+            self.RWT.iterate_pickle_writing(tokenized, file_paths)
     
     def start_conclusions_iteration(self):
         '''
         Return generator object over paths to texts
         '''
-        return self.RWT.iterate_text_loading(self.path2)
+        return self.RWT.iterate_text_loading(self.dir_struct['Conclusions'])
     
     def act_and_concl_to_mtrx(self, pars_list, concl, verbose=False):
         data = [concl] + pars_list
@@ -392,12 +411,80 @@ class Constructor():
             return sorted(holder, key = lambda x: x[1])[0]
         else:
             raise TypeError('Wrong key argument for "output"!')
+    
+    def all_raw_words(self, path=None):
+        top_dir = path if path else self.dir_struct['Divided_and_tokenized']
+        all_files = self.RWT.iterate_pickle_loading(top_dir)
+        vocab = self.CTP.words_count(all_files)
+        return vocab
+    
+    def create_norm_vocab(self,
+                        vocab,
+                        parser='parser2',
+                        save=False):
+        all_words = list(vocab.keys())
+        print('Strating normalization!')
+        t0 = time()
+        norm_words = self.CTP.lemmatize(all_words, par_type=parser)
+        print('Normalization complete in {} seconds'.format(time()-t0))
+        lem_dict = {
+            raw_word:norm_word
+            for (raw_word, norm_word)
+            in zip(all_words, norm_words)            
+        }
+        if save:
+            self.save_lem_dict(lem_dict, par_type=parser)
+        else:
+            return lem_dict
+        
+    def save_lem_dict(self, lem_dict, par_type):
+        path = self.dir_struct['Statistics_and_data']
+        path = path.joinpath('normed_by_'+par_type)
+        self.RWT.write_pickle(lem_dict, path)
 
-    def export_cd_eval_results(self):
+    def load_lem_dict(self, par_type):
+        path = self.dir_struct['Statistics_and_data']
+        path = path.joinpath('normed_by_'+par_type)
+        return self.RWT.load_pickle(path)
+    
+    def lemmatize_acts(self, lem_dict):
+        path = self.dir_struct['Divided_and_tokenized']
+        all_acts = self.RWT.iterate_pickle_loading(path)
+        all_lemmed_acts = self.CTP.iterate_lemmatize_by_dict(
+            lem_dict,
+            all_acts
+        )
+        return all_lemmed_acts
+    
+    def table_to_csv(self,
+                     table,
+                     columns=2,
+                     path=None,
+                     zero_string=None,
+                     header=['Col1', 'Col2'],
+                     file_name='py_table'):
+        if path:
+            path = pthl.Path(path)
+            path.joinpath(file_name).with_suffix('.csv')
+        else:
+            path = self.dir_struct['Results']
+            path = path.joinpath(file_name).with_suffix('.csv')
+        assert columns == len(header)
+        self.RWT.write_text_to_csv(
+            path,
+            table,
+            zero_string=zero_string,
+            header=header
+        )
+
+    def _export_cd_eval_results(self):
         concls = self.start_conclusions_iteration()
         for concl in concls:
             concl = self.CTP.full_process(concl)
-            acts = self.start_acts_iteration()
+            acts = (
+                self.RWT.iterate_pickle_loading\
+                (self.dir_struct['Divided_and_tokenized'])
+            )
             print('\n', concl[:50], '\n', sep='')
             t0 = time()
             holder = []
@@ -418,11 +505,12 @@ class Constructor():
                 'Time in seconds: {}'.format(t2-t1)
             )
             name = concl[:40]
-            self.RWT.write_text_to_csv(
-                self.path3.joinpath(name).with_suffix('.csv'),
+            self.table_to_csv(
                 holder,
+                columns=3,
                 header=('Суд','Реквизиты','Косинус'),
-                zero_string = concl
+                zero_string = concl,
+                file_name=name
             )
             breaker = None
             while breaker != '1' and breaker != '0':
@@ -438,19 +526,17 @@ class Constructor():
             elif breaker == '1':
                 print('Continue execution')
         print('Execution complete')
-    
-    def export_vocab_to_csv(self, vocab=None, file_name='count_uniq'):
-        path = self.path3.joinpath(file_name).with_suffix('.csv')
-        if vocab:
-            print('Sorting vocabulary')
-            srt_vocab = vocab.most_common()
-        else:
-            print('Creating vocabulary, counting words...')
-            vocab = self._back_comp_all_words() #needs to be changed to .all_words()
-            srt_vocab = vocab.most_common()
-        self.RWT.write_text_to_csv(
-            path,
+
+    def _export_vocab_to_csv(self, vocab, file_name='count_uniq'):
+        path = self.dir_struct['Results']
+        path = path.joinpath(file_name).with_suffix('.csv')
+        print('Sorting vocabulary')
+        srt_vocab = vocab.most_common()
+        self.table_to_csv(
             srt_vocab,
-            header=('Слова','Количество вхождений в корпус')
+            columns=2,
+            path=path,
+            header=('Слова','Количество вхождений в корпус'),
+            file_name=file_name
         )
 
