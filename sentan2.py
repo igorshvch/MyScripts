@@ -59,25 +59,13 @@ class ReadWriteTool():
         print('Created directories:')
         for strg in sorted(paths):
             print('\t'+strg)
-    
-    def create_acts_subdirs(self, path, des_folder):
-        p = pthl.Path(path)
-        files = sorted([fle for fle in p.iterdir() if fle.is_file()])
-        subdirs = [
-            des_folder.joinpath(fle.stem)
-            for fle in files
-                if fle.is_file()
-        ]
-        for subdir in subdirs:
-            subdir.mkdir(parents=True, exist_ok=True)
-        return subdirs    
 
     def load_text(self, path):
         with open(path, mode='r', encoding=self.enc) as fle:
             text = fle.read()
         return text
 
-    def collect_exist_file_paths(self, top_dir, suffix='.txt'):
+    def collect_exist_file_paths(self, top_dir, suffix=''):
         holder = []
         def inner_func(top_dir, suffix):
             p = pthl.Path(top_dir)
@@ -96,7 +84,7 @@ class ReadWriteTool():
         Return generator object iterating over all text files
         in the top_dir subdirectories.
         '''
-        paths = self.collect_exist_file_paths(top_dir)
+        paths = self.collect_exist_file_paths(top_dir, suffix='.txt')
         print(
             len(paths),
             'The first file in the queue is:\n{}'.format(paths[0]),
@@ -108,11 +96,11 @@ class ReadWriteTool():
         with open(path, mode='w', encoding=self.enc) as fle:
                 fle.write(text)
     
-    def create_writing_paths(self, file_quant, path, suffix=''):
+    def create_writing_paths(self, strt, stp, path, suffix=''):
         p = pthl.Path(path)
         file_paths = [
             p.joinpath(str(i)).with_suffix(suffix)
-            for i in range(file_quant)
+            for i in range(strt, stp, 1)
         ]
         return file_paths
 
@@ -246,17 +234,19 @@ class CustomTextProcessor():
         return [lem_dict[token] for token in tokens_list]
     
     def iterate_lemmatize_by_dict(self, lem_dict, acts_gen):
-        holder = []
-        print('Start normalization!')
-        t0 = time()
+        '''
+        Return generator object
+        '''
+        #print('Start normalization!')
+        #t0 = time()
         for act in acts_gen:
             act = [
                 self.lemmatize_by_dict(lem_dict, par)
                 for par in act
             ]
-            holder.append(act)
-        print('Normalization complete in {} seconds'.format(time()-t0))
-        return holder
+            yield act
+        #print('Normalization complete in {} seconds'.format(time()-t0))
+        #return holder
     
     def full_process(self, text, par_type='parser1'):
         tokens = self.tokenize(text)
@@ -360,10 +350,8 @@ class Constructor():
 
     def divide_and_tokenize_acts(self):
         raw_files = self.RWT.iterate_text_loading(self.dir_struct['Raw_text'])
-        subdirs = deque(self.RWT.create_acts_subdirs(
-            path = self.dir_struct['Raw_text'],
-            des_folder = self.dir_struct['Divided_and_tokenized']
-        ))
+        counter1 = 0
+        counter2 = 0
         for fle in raw_files:
             print('Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
@@ -372,12 +360,17 @@ class Constructor():
             t0 = time()
             tokenized = self.CTP.iterate_tokenization(divided)
             print('\tTokenization complete in {} seconds!'.format(time()-t0))
+            counter2 += len(divided)
+            t0=time()
+            print('\tStart writing')
             file_paths = self.RWT.create_writing_paths(
-                len(divided),
-                subdirs.popleft(),
+                counter1, counter2,
+                self.dir_struct['Divided_and_tokenized'],
                 suffix=''
             )
             self.RWT.iterate_pickle_writing(tokenized, file_paths)
+            counter1 += len(divided)
+            print('\tWriting complete in {} seconds!'.format(time()-t0))
     
     def vocab_raw_words(self, path=None):
         top_dir = path if path else self.dir_struct['Divided_and_tokenized']
@@ -432,35 +425,47 @@ class Constructor():
     
     def lemmatize_and_save_acts(self, lem_dict, par_type='parser1'):
         path = self.dir_struct['Divided_and_tokenized']
-        all_acts = self.RWT.iterate_pickle_loading(path)
-        all_lemmed_acts = self.CTP.iterate_lemmatize_by_dict(
+        all_acts_gen = self.RWT.iterate_pickle_loading(path)
+        lemmed_acts_gen = self.CTP.iterate_lemmatize_by_dict(
             lem_dict,
-            all_acts
+            all_acts_gen
         )
-        subdirs = [
-            path_item.name
-            for path_item in path.iterdir()
-                if path_item.is_dir()
-        ]
-        for subdir in subdirs:
-            subpath = self.dir_struct['Normalized_by_{}'.format(par_type)]
-            subpath = subpath.joinpath(subdir)
-            subpath.mkdir(parents=True, exist_ok=True)
-        all_files = self.RWT.collect_exist_file_paths(
-            self.dir_struct['Divided_and_tokenized'],
-            suffix=''
-        )
-        all_files = [
-            file_path.parents[2].joinpath(
-                self.dir_struct['Normalized_by_{}'.format(par_type)],
-                *file_path.parts[-2:]
+        print(path)
+        acts_quant = len(self.RWT.collect_exist_file_paths(path))
+        print(acts_quant)
+        writing_paths = deque(self.RWT.create_writing_paths(
+            0,
+            acts_quant,
+            self.dir_struct['Normalized_by_{}'.format(par_type)]
+        ))
+        #subdirs = [
+        #    path_item.name
+        #    for path_item in path.iterdir()
+        #        if path_item.is_dir()
+        #]
+        #for subdir in subdirs:
+        #    subpath = self.dir_struct['Normalized_by_{}'.format(par_type)]
+        #    subpath = subpath.joinpath(subdir)
+        #    subpath.mkdir(parents=True, exist_ok=True)
+        #all_files = self.RWT.collect_exist_file_paths(
+        #    self.dir_struct['Divided_and_tokenized'],
+        #    suffix=''
+        #)
+        #all_files = [
+        #    file_path.parents[2].joinpath(
+        #        self.dir_struct['Normalized_by_{}'.format(par_type)],
+        #        *file_path.parts[-2:]
+        #    )
+        #    for file_path in all_files
+        #]
+        t0 = time()
+        print('Start normalization and writing')
+        for lem_act in lemmed_acts_gen:
+            self.RWT.write_pickle(
+                lem_act,
+                writing_paths.popleft()
             )
-            for file_path in all_files
-        ]
-        self.RWT.iterate_pickle_writing(
-            all_lemmed_acts,
-            all_files
-        )
+        print('Normalization and writing complete in {} seconds'.format(time()-t0))
     
     def start_conclusions_iteration(self):
         '''
@@ -491,17 +496,17 @@ class Constructor():
     def export_cd_eval_results(self):
         concls = self.start_conclusions_iteration()
         for concl in concls:
-            concl = ' '.join(self.CTP.full_process(concl))
+            concl_cleaned = ' '.join(self.CTP.full_process(concl))
             acts = (
                 self.RWT.iterate_pickle_loading\
                 (self.dir_struct['Normalized_by_parser1'])
             )
-            print('\n', concl[:50], '\n', sep='')
+            print('\n', concl_cleaned[:50], '\n', sep='')
             t0 = time()
             holder = []
             for act in acts:
                 act = [' '.join(par_lst) for par_lst in act]
-                data_mtrx = self.act_and_concl_to_mtrx(act, concl)
+                data_mtrx = self.act_and_concl_to_mtrx(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 holder.append([act[0], act[2], cos, act[par_index-1]])
             t1 = time()
