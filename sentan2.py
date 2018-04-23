@@ -32,8 +32,11 @@ from nltk.corpus import stopwords
 #                    (string_objs)
 
 #CONSTANTS:
-PATTERN_ACT_CLEAN = (
+PATTERN_ACT_CLEAN1 = (
     r'-{66}\nКонсультантПлюс.+?-{66}\n'
+)
+PATTERN_ACT_CLEAN2 = (
+    r'\AКонсультантПлюс.+?\n.+?\n'
 )
 PATTERN_ACT_SEP = (
     r'\n\n\n-{66}\n\n\n'
@@ -103,12 +106,6 @@ class ReadWriteTool():
             for i in range(strt, stp, 1)
         ]
         return file_paths
-
-    def iterate_text_writing(self, texts, paths):
-        pairs = zip(texts, paths)
-        for item in pairs:
-            text, path = item
-            self.write_text(text, path)
     
     def write_text_to_csv(self,
                           file_name,
@@ -138,12 +135,6 @@ class ReadWriteTool():
             pickle.dump(py_obj,
                         file_name,
                         protocol=pickle.HIGHEST_PROTOCOL)
-
-    def iterate_pickle_writing(self, py_objs, paths):
-        pairs = zip(py_objs, paths)
-        for item in pairs:
-            py_obj, path = item
-            self.write_pickle(py_obj, path)
         
     def load_pickle(self, path):
         with open(path, 'rb') as fle:
@@ -187,9 +178,10 @@ class CustomTextProcessor():
 
     def court_decisions_cleaner(self, text):
         t0 = time()
-        cleaned_text = re.subn(PATTERN_ACT_CLEAN, '', text, flags=re.DOTALL)[0]
+        cleaned_text1 = re.subn(PATTERN_ACT_CLEAN1, '', text, flags=re.DOTALL)[0]
+        cleaned_text2 = re.subn(PATTERN_ACT_CLEAN2, '', cleaned_text1)[0]
         print('Acts were cleaned in {} seconds'.format(time()-t0))
-        return cleaned_text
+        return cleaned_text2
     
     def court_decisions_separator(self, text):
         t0 = time()
@@ -230,23 +222,19 @@ class CustomTextProcessor():
                 result.append(norm)
             return result
     
-    def lemmatize_by_dict(self, lem_dict, tokens_list):
-        return [lem_dict[token] for token in tokens_list]
+    def lemmatize_by_dict(self, lem_dict, tokens_list, verifier):
+        return [lem_dict[token] for token in tokens_list if token in verifier]
     
-    def iterate_lemmatize_by_dict(self, lem_dict, acts_gen):
+    def iterate_lemmatize_by_dict(self, lem_dict, acts_gen, verifier):
         '''
         Return generator object
         '''
-        #print('Start normalization!')
-        #t0 = time()
         for act in acts_gen:
             act = [
-                self.lemmatize_by_dict(lem_dict, par)
+                self.lemmatize_by_dict(lem_dict, par, verifier)
                 for par in act
             ]
             yield act
-        #print('Normalization complete in {} seconds'.format(time()-t0))
-        #return holder
     
     def full_process(self, text, par_type='parser1'):
         tokens = self.tokenize(text)
@@ -276,6 +264,13 @@ class CustomTextProcessor():
         t1 = time()
         print('Words were counted in {} seconds'.format(t1-t0))
         return vocab
+    
+    def collect_all_words(self, act):
+        return [
+            w
+            for par in act
+            for w in par
+        ]
 
 
 class Vectorization():
@@ -363,12 +358,16 @@ class Constructor():
             counter2 += len(divided)
             t0=time()
             print('\tStart writing')
-            file_paths = self.RWT.create_writing_paths(
+            file_paths = deque(self.RWT.create_writing_paths(
                 counter1, counter2,
                 self.dir_struct['Divided_and_tokenized'],
                 suffix=''
-            )
-            self.RWT.iterate_pickle_writing(tokenized, file_paths)
+            ))
+            for tok_act in tokenized:
+                self.RWT.write_pickle(
+                    tok_act,
+                    file_paths.popleft()
+                )
             counter1 += len(divided)
             print('\tWriting complete in {} seconds!'.format(time()-t0))
     
@@ -428,36 +427,15 @@ class Constructor():
         all_acts_gen = self.RWT.iterate_pickle_loading(path)
         lemmed_acts_gen = self.CTP.iterate_lemmatize_by_dict(
             lem_dict,
-            all_acts_gen
+            all_acts_gen,
+            set(lem_dict)
         )
-        print(path)
         acts_quant = len(self.RWT.collect_exist_file_paths(path))
-        print(acts_quant)
-        writing_paths = deque(self.RWT.create_writing_paths(
+        writing_paths = deque(sorted(self.RWT.create_writing_paths(
             0,
             acts_quant,
             self.dir_struct['Normalized_by_{}'.format(par_type)]
-        ))
-        #subdirs = [
-        #    path_item.name
-        #    for path_item in path.iterdir()
-        #        if path_item.is_dir()
-        #]
-        #for subdir in subdirs:
-        #    subpath = self.dir_struct['Normalized_by_{}'.format(par_type)]
-        #    subpath = subpath.joinpath(subdir)
-        #    subpath.mkdir(parents=True, exist_ok=True)
-        #all_files = self.RWT.collect_exist_file_paths(
-        #    self.dir_struct['Divided_and_tokenized'],
-        #    suffix=''
-        #)
-        #all_files = [
-        #    file_path.parents[2].joinpath(
-        #        self.dir_struct['Normalized_by_{}'.format(par_type)],
-        #        *file_path.parts[-2:]
-        #    )
-        #    for file_path in all_files
-        #]
+        )))
         t0 = time()
         print('Start normalization and writing')
         for lem_act in lemmed_acts_gen:
@@ -473,11 +451,9 @@ class Constructor():
         '''
         return self.RWT.iterate_text_loading(self.dir_struct['Conclusions'])
     
-    def act_and_concl_to_mtrx(self, pars_list, concl, verbose=False):
+    def act_and_concl_to_mtrx(self, pars_list, concl):
         data = [concl] + pars_list
         self.Vct.vectorizer.fit(data)
-        if verbose:
-            print('Vectorized!')
         data_mtrx = self.Vct.create_vectors(data)
         return data_mtrx
 
@@ -493,22 +469,31 @@ class Constructor():
         else:
             raise TypeError('Wrong key argument for "output"!')
 
-    def export_cd_eval_results(self):
+    def export_cd_eval_results(self, auto_mode=False):
         concls = self.start_conclusions_iteration()
         for concl in concls:
             concl_cleaned = ' '.join(self.CTP.full_process(concl))
+            uncl_acts = deque(self.RWT.collect_exist_file_paths(
+                self.dir_struct['Divided_and_tokenized']
+            ))
             acts = (
                 self.RWT.iterate_pickle_loading\
                 (self.dir_struct['Normalized_by_parser1'])
             )
-            print('\n', concl_cleaned[:50], '\n', sep='')
+            print('\n', concl[:50], '\n', sep='')
             t0 = time()
             holder = []
             for act in acts:
+                uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 act = [' '.join(par_lst) for par_lst in act]
                 data_mtrx = self.act_and_concl_to_mtrx(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
-                holder.append([act[0], act[2], cos, act[par_index-1]])
+                holder.append(
+                    [act[0],
+                    act[2],
+                    cos,
+                    uncl_act[par_index-1]]
+                )
             t1 = time()
             print(
                 'Acts were processed!',
@@ -528,19 +513,20 @@ class Constructor():
                 zero_string = concl,
                 file_name=name
             )
-            breaker = None
-            while breaker != '1' and breaker != '0':
-                breaker = input(
-                ("Обработка вывода окончена. Обработать следующий вывод? "
-                +"[1 for 'yes'/0 for 'no']")
-                )
-                if breaker != '1' and breaker != '0':
-                    print('Вы ввели неподдерживаемое значение!')
-            if breaker == '0':
-                print('Programm was terminated')
-                break
-            elif breaker == '1':
-                print('Continue execution')
+            if not auto_mode:
+                breaker = None
+                while breaker != '1' and breaker != '0':
+                    breaker = input(
+                    ("Обработка вывода окончена. Обработать следующий вывод? "
+                    +"[1 for 'yes'/0 for 'no']")
+                    )
+                    if breaker != '1' and breaker != '0':
+                        print('Вы ввели неподдерживаемое значение!')
+                if breaker == '0':
+                    print('Programm was terminated')
+                    break
+                elif breaker == '1':
+                    print('Continue execution')
         print('Execution ended')
     
     def table_to_csv(self,
@@ -576,4 +562,85 @@ class Constructor():
             header=('Слова','Количество вхождений в корпус'),
             file_name=file_name
         )
+    
+    def auto(self):
+        t0=time()
+        print('\t\tStarting division and tokenization!')
+        self.divide_and_tokenize_acts()
+        print('\t\tActs are divided and tokenized')
+        print('\t\tCreating raw words dictionary')
+        vocab_rw = self.vocab_raw_words()
+        print('\t\tDictionary is created')
+        print('\t\tCreating mapping')
+        self.lem_dict = self.create_lem_dict(vocab_rw)
+        print('\t\tMapping is created')
+        print('\t\tStarting lemmatization')
+        self.lemmatize_and_save_acts(self.lem_dict)
+        print('\t\tCreating norm words dictionary')
+        self.vocab_nw = self.vocab_norm_words()
+        print('\t\tDictionary is created')
+        print('\t\tSaving all dictionaries')
+        self.save_lem_dict(self.lem_dict, par_type='parser1')
+        self.save_vocab(vocab_rw, 'vocab_raw_words')
+        self.save_vocab(self.vocab_nw, 'vocab_norm1_words')
+        print('\t\tDictionaries are saved')
+        print('\t\tTotal time costs: {} seconds'.format(time()-t0))
 
+    def load_file(self, path):
+        return self.RWT.load_pickle(path)
+    
+    def file_to_text(self, path_to_file, output_file_name):
+        path = pthl.Path(path_to_file)
+        print('Entered path: {}'.format(path))
+        path = path.joinpath(output_file_name)
+        obj = self.RWT.load_pickle(path)
+        self.RWT.write_text(obj, path)
+    
+    def obj_to_text(self, obj, file_name):
+        if type(obj) != str:
+            obj = str(obj)
+        path = self.dir_struct['Results']
+        path = path.joinpath(file_name)
+        self.RWT.write_text(obj, path)
+    
+    def create_2_3_gramm_voc(self, gramm=2, norm=True, par_type='parser1'):
+        t0 = time()
+        if norm:            
+            acts_gen = self.RWT.iterate_pickle_loading(
+                self.dir_struct['Normalized_by_{}'.format(par_type)]
+            )
+        else:
+            acts_gen = self.RWT.iterate_pickle_loading(
+                self.dir_struct['Divided_and_tokenized']
+            )
+        holder = Counter()
+        for act in acts_gen:
+            all_words = self.CTP.collect_all_words(act) 
+            la = len(all_words)
+            if gramm == 2:
+                for i in range((0+1), la, 1):
+                    ngramm = [all_words[i-1] + ' ' + all_words[i]]
+                    holder.update(ngramm)
+            elif gramm == 3:
+                for i in range((0+2), la, 1):
+                    ngramm = [
+                        all_words[i-2] + ' '
+                        + all_words[i-1] + ' '
+                        + all_words[i]
+                    ]
+                    holder.update(ngramm)
+        print('Ngramms collected in {} seconds'.format(time()-t0))
+        return holder
+    
+    def gramm_to_csv(self, gramm_obj, file_name='Ngramm'):
+        path = self.dir_struct['Results']
+        path = path.joinpath(file_name).with_suffix('.csv')
+        srt_gramm = gramm_obj.most_common()
+        self.table_to_csv(
+            srt_gramm,
+            columns=2,
+            path=path,
+            header=('N-граммы','Количество вхождений в корпус'),
+            file_name=file_name
+        )
+    
