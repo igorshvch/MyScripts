@@ -224,6 +224,31 @@ class CustomTextProcessor():
             holder.append(text_holder)
         return holder
     
+    def tokenize_wo_stpw(self, vocab):
+        def inner_func(text):
+            text = text.lower().strip()
+            return [
+                token
+                for token in re.split('\W', text)
+                    if len(token)>1 and token not in vocab
+            ]
+        return inner_func
+    
+    def remove_stpw_from_list(self, list_obj, vocab):
+        return [w for w in list_obj if w not in vocab]
+    
+    def iterate_tokenization_wo_stpw(self, text_gen, vocab):
+        holder = []
+        tokenizer = self.tokenize_wo_stpw(vocab)
+        for text in text_gen:
+            text_holder=[]
+            pars_list = text.split('\n')
+            for par in pars_list:
+                if par:
+                    text_holder.append(tokenizer(par))
+            holder.append(text_holder)
+        return holder
+    
     def lemmatize(self, tokens_list, par_type='parser1'):
         self.change_parser(par_type=par_type)
         parser = self.parser
@@ -253,8 +278,11 @@ class CustomTextProcessor():
             ]
             yield act
     
-    def full_process(self, text, par_type='parser1'):
-        tokens = self.tokenize(text)
+    def full_process(self, text, par_type='parser1', vocab=None):
+        if vocab:
+            tokens = self.tokenize_wo_stpw(vocab)(text)
+        else:
+            tokens = self.tokenize(text)
         lemms = self.lemmatize(tokens, par_type=par_type)
         return lemms
     
@@ -298,6 +326,18 @@ class CustomTextProcessor():
                 holder.append(bigram)
         return holder
     
+    def create_2grams_with_voc(self, vocab):
+        def inner_func(par):
+            holder=[]
+            par = [w for w in par if w not in vocab]
+            la = len(par)
+            if la > 1:
+                for i in range(1, la, 1):
+                    bigram = par[i-1] + ' ' + par[i]
+                    holder.append(bigram)
+            return holder
+        return inner_func
+    
     def create_3grams(self, par):
         holder=[]
         la = len(par)
@@ -309,7 +349,31 @@ class CustomTextProcessor():
                     + ' ' + par[i]
                 )
                 holder.append(trigram)       
-        return holder                    
+        return holder
+
+    def create_3grams_with_voc(self, vocab):
+        def inner_func(par):
+            holder=[]
+            par = [w for w in par if w not in vocab]
+            la = len(par)
+            if la > 2:
+                for i in range(2, la, 1):
+                    trigram = (
+                        par[i-2]
+                        + ' ' + par[i-1]
+                        + ' ' + par[i]
+                    )
+                    holder.append(trigram)       
+            return holder
+        return inner_func
+    
+    def extract_repetative_ngrams(self, ngram_list, rep_num=2):
+        holder = Counter()
+        holder.update(ngram_list)
+        holder_rep = [ngram for ngram,value in holder.items() if value >=2]
+        print(holder_rep)
+        return holder_rep
+
 
 
 class Vectorization():
@@ -511,7 +575,8 @@ class Constructor():
         data = [concl] + pars_list
         self.Vct.vectorizer.fit([concl])
         data_mtrx = self.Vct.create_vectors(data)
-        return data_mtrx
+        update_mtrx = np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
+        return update_mtrx
 
     def eval_cos_dist(self, index_mtrx, output='best'):
         base = index_mtrx[0,:]
@@ -647,8 +712,10 @@ class Constructor():
     def load_file(self, full_path):
         return self.RWT.load_pickle(full_path)
     
-    def save_file(self, file, full_path):
-        self.RWT.load_pickle(full_path)
+    def save_object(self, py_obj, file_name, full_path):
+        path = pthl.Path()
+        path = path.joinpath(full_path, file_name)
+        self.RWT.write_pickle(py_obj, path)
     
     def file_to_text(self, full_path_to_file, output_file_name):
         path = pthl.Path(full_path_to_file)
@@ -751,25 +818,39 @@ class Constructor():
             header=('N-граммы','Количество вхождений в корпус')   
         )
     
-    def collect_2grams(self, gram, dir_name=''):
+    def collect_2grams(self,
+                       gram=2,
+                       load_dir_name='',
+                       save_dir_name='',
+                       vocab=None):
         path_to_acts = self.dir_struct['Normalized_by_parser1']
-        path_to_acts = path_to_acts.joinpath(dir_name)
+        path_to_acts = path_to_acts.joinpath(load_dir_name)
         
         acts = self.RWT.iterate_pickle_loading(path_to_acts)
         acts_quant = len(self.RWT.collect_exist_file_paths(path_to_acts))
         
         save_dir = self.dir_struct['{}grams'.format(gram)]
-        save_dir = save_dir.joinpath(dir_name)
+        save_dir = save_dir.joinpath(save_dir_name)
         writing_paths = deque(sorted(self.RWT.create_writing_paths(
             0,
             acts_quant,
             save_dir
         )))
         t0 = time()
+        if vocab:
+            func_2grams = self.CTP.create_2grams_with_voc(vocab)
+        else:
+            func_2grams = self.CTP.create_2grams
         print('Start collecting bigrmas and writing')
         for act in acts:
+            if vocab:
+                act = [
+                    self.CTP.remove_stpw_from_list(par, vocab)
+                    for par in act
+                ]
+                act = [par for par in act if par]
             bigram = [
-                par + self.CTP.create_2grams(par)
+                par + func_2grams(par)
                 for par in act
             ]
             self.RWT.write_pickle(
@@ -786,16 +867,22 @@ class Constructor():
                                       auto_mode=False,
                                       concl_dir_name='',
                                       load_dir_name='',
-                                      save_dir_name=''):
+                                      save_dir_name='',
+                                      vocab=None):
         concls = self.start_conclusions_iteration(dir_name=concl_dir_name)
         for concl in concls:
-            concl_prep = self.CTP.tokenize(concl)
+            if vocab:
+                concl_prep = self.CTP.tokenize_wo_stpw(vocab)(concl)
+            else:
+                concl_prep = self.CTP.tokenize(concl)
             #print(concl_prep)
-            concl_prep = concl_prep + self.CTP.create_2grams(concl_prep)
+            concl_gram = self.CTP.create_2grams(concl_prep)
+            concl_rep_gram = self.CTP.extract_repetative_ngrams(concl_gram)
+            concl_prep = concl_prep + concl_rep_gram
             concl_cleaned = ' '.join(concl_prep)
-            #print(concl_cleaned)
+            print(concl_cleaned)
             uncl_acts = deque(self.RWT.collect_exist_file_paths(
-                self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+                self.dir_struct['Divided_and_tokenized'].joinpath('2018-04-24')
             ))
             path_to_acts = self.dir_struct['{}grams'.format(gram)]
             path_to_acts = path_to_acts.joinpath(load_dir_name)
@@ -850,25 +937,33 @@ class Constructor():
                     print('Continue execution')
         print('Execution ended')
     
-    def collect_3grams(self, gram, dir_name=''):
+    def collect_3grams(self,
+                       gram=3,
+                       load_dir_name='',
+                       save_dir_name='',
+                       vocab=None):
         path_to_acts = self.dir_struct['Normalized_by_parser1']
-        path_to_acts = path_to_acts.joinpath(dir_name)
+        path_to_acts = path_to_acts.joinpath(load_dir_name)
         
         acts = self.RWT.iterate_pickle_loading(path_to_acts)
         acts_quant = len(self.RWT.collect_exist_file_paths(path_to_acts))
         
         save_dir = self.dir_struct['{}grams'.format(gram)]
-        save_dir = save_dir.joinpath(dir_name)
+        save_dir = save_dir.joinpath(save_dir_name)
         writing_paths = deque(sorted(self.RWT.create_writing_paths(
             0,
             acts_quant,
             save_dir
         )))
         t0 = time()
+        if vocab:
+            func_3grams = self.CTP.create_3grams_with_voc(vocab)
+        else:
+            func_3grams = self.CTP.create_3grams
         print('Start collecting bigrmas and writing')
         for act in acts:
             bigram = [
-                par + self.CTP.create_3grams(par)
+                par + func_3grams(par)
                 for par in act
             ]
             self.RWT.write_pickle(
