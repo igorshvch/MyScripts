@@ -54,7 +54,7 @@ class ReadWriteTool():
     Class provides API to reading and writing options.
     '''
     def __init__(self, enc='cp1251'):
-        self.enc=enc
+        self.enc=encasdasd
         print('RWT class created')
 
     def create_dirs(self, dir_struct, sub_dir=''):
