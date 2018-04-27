@@ -33,16 +33,19 @@ from nltk.corpus import stopwords
 
 #CONSTANTS:
 PATTERN_ACT_CLEAN1 = (
-    r'-{66}\nКонсультантПлюс.+?-{66}\n'
+    '-{66}\nКонсультантПлюс.+?-{66}\n'
 )
 PATTERN_ACT_CLEAN2 = (
-    r'\AКонсультантПлюс.+?\n.+?\n'
+    'КонсультантПлюс.+?\n.+?\n'
+)
+PATTERN_ACT_CLEAN3 = (
+    'Рубрикатор ФАС \(АСЗО\).*?Текст документа'
 )
 PATTERN_ACT_SEP1 = (
-    r'\n\n\n-{66}\n\n\n'
+    '\n\n\n-{66}\n\n\n'
 )
 PATTERN_ACT_SEP2 = (
-    r'Документ предоставлен КонсультантПлюс'
+    'Документ предоставлен КонсультантПлюс'
 )
 
 #pymoprhy2 analyzer instance
@@ -54,7 +57,7 @@ class ReadWriteTool():
     Class provides API to reading and writing options.
     '''
     def __init__(self, enc='cp1251'):
-        self.enc=encasdasd3434524git
+        self.enc=enc
         print('RWT class created')
 
     def create_dirs(self, dir_struct, sub_dir=''):
@@ -190,18 +193,21 @@ class CustomTextProcessor():
 
     def court_decisions_cleaner(self, text):
         t0 = time()
-        cleaned_text1 = re.subn(PATTERN_ACT_CLEAN1, '', text, flags=re.DOTALL)[0]
+        cleaned_text1 = re.subn(
+            PATTERN_ACT_CLEAN1, '', text, flags=re.DOTALL
+        )[0]
         cleaned_text2 = re.subn(PATTERN_ACT_CLEAN2, '', cleaned_text1)[0]
+        cleaned_text3 = re.subn(
+            PATTERN_ACT_CLEAN3, '', cleaned_text2, flags=re.DOTALL
+        )[0]
         print('Acts were cleaned in {} seconds'.format(time()-t0))
-        return cleaned_text2
+        return cleaned_text3
     
     def court_decisions_separator(self, text, sep_type='sep1'):
         t0 = time()
         if sep_type=='sep1':
-            print(PATTERN_ACT_SEP1)
             separated_acts = re.split(PATTERN_ACT_SEP1, text)
         else:
-            print(PATTERN_ACT_SEP2)
             separated_acts = re.split(PATTERN_ACT_SEP2, text)
         print(
             'Acts were separated in {} seconds'.format(time()-t0),
@@ -214,15 +220,16 @@ class CustomTextProcessor():
         return [token for token in re.split('\W', text) if len(token)>1]
     
     def iterate_tokenization(self, text_gen):
-        holder = []
+        '''
+        Return generator object
+        '''
         for text in text_gen:
             text_holder=[]
             pars_list = text.split('\n')
             for par in pars_list:
                 if par:
                     text_holder.append(self.tokenize(par))
-            holder.append(text_holder)
-        return holder
+            yield text_holder
     
     def tokenize_wo_stpw(self, vocab):
         def inner_func(text):
@@ -238,7 +245,9 @@ class CustomTextProcessor():
         return [w for w in list_obj if w not in vocab]
     
     def iterate_tokenization_wo_stpw(self, text_gen, vocab):
-        holder = []
+        '''
+        Return generator object
+        '''
         tokenizer = self.tokenize_wo_stpw(vocab)
         for text in text_gen:
             text_holder=[]
@@ -246,8 +255,7 @@ class CustomTextProcessor():
             for par in pars_list:
                 if par:
                     text_holder.append(tokenizer(par))
-            holder.append(text_holder)
-        return holder
+            yield text_holder
     
     def lemmatize(self, tokens_list, par_type='parser1'):
         self.change_parser(par_type=par_type)
@@ -319,9 +327,9 @@ class CustomTextProcessor():
     
     def create_2grams(self, par):
         holder=[]
-        la = len(par)
-        if la > 1:
-            for i in range(1, la, 1):
+        lp = len(par)
+        if lp > 1:
+            for i in range(1, lp, 1):
                 bigram = par[i-1] + ' ' + par[i]
                 holder.append(bigram)
         return holder
@@ -373,7 +381,6 @@ class CustomTextProcessor():
         holder_rep = [ngram for ngram,value in holder.items() if value >=2]
         print(holder_rep)
         return holder_rep
-
 
 
 class Vectorization():
@@ -455,25 +462,31 @@ class Constructor():
     def create_sub_dirs(self, dir_name):
         self.RWT.create_dirs(self.dir_struct, sub_dir=dir_name)
 
-    def div_tok_acts(self, dir_name='', sep_type='sep1'):
+    def div_tok_acts(self,
+                     dir_name='',
+                     sep_type='sep1',
+                     stpw_vocab=None,
+                     iden=''):
         path = self.dir_struct['Raw_text'].joinpath(dir_name)
         raw_files = self.RWT.iterate_text_loading(path)
         counter1 = 0
         counter2 = 0
         for fle in raw_files:
-            print('Starting new file processing!')
+            print(iden+'Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
             divided = self.CTP.court_decisions_separator(
                 cleaned,
                 sep_type=sep_type
             )
-            print('\tStrating tokenization!')
-            t0 = time()
-            tokenized = self.CTP.iterate_tokenization(divided)
-            print('\tTokenization complete in {} seconds!'.format(time()-t0))
+            if stpw_vocab:
+                tokenized = (
+                    self.CTP.iterate_tokenization_wo_stpw(divided, stpw_vocab)
+                )
+            else:
+                tokenized = self.CTP.iterate_tokenization(divided)
             counter2 += len(divided)
             t0=time()
-            print('\tStart writing')
+            print(iden+'\tStarting tokenization and writing')
             file_paths = deque(self.RWT.create_writing_paths(
                 counter1, counter2,
                 self.dir_struct['Divided_and_tokenized'].joinpath(dir_name),
@@ -485,29 +498,43 @@ class Constructor():
                     file_paths.popleft()
                 )
             counter1 += len(divided)
-            print('\tWriting complete in {} seconds!'.format(time()-t0))
+            print(
+                iden+'\tTokenization and writing '
+                +'complete in {} seconds!'.format(time()-t0)
+            )
     
-    def vocab_raw_words(self, dir_name=''):
-        top_dir = self.dir_struct['Divided_and_tokenized'].joinpath(dir_name)
-        all_files = self.RWT.iterate_pickle_loading(top_dir)
+    def create_vocab(self, dir_name='', spec='raw', iden=''):
+        '''
+        Accepted 'spec' args:
+        raw, norm1
+        '''
+        options = {
+            'raw' : (
+                self.dir_struct['Divided_and_tokenized'].joinpath(dir_name)
+            ),
+            'norm1' : (
+                self.dir_struct['Normalized_by_parser1'].joinpath(dir_name)
+            ),
+            'norm2' : (
+                self.dir_struct['Normalized_by_parser2'].joinpath(dir_name)
+            ),
+        }
+        t0=time()
+        print(iden+'Starting vocab creation!')
+        all_files = self.RWT.iterate_pickle_loading(options[spec])
         vocab = self.CTP.words_count(all_files)
-        return vocab
-    
-    def vocab_norm_words(self, par_type='parser1', dir_name=''):
-        acts_path = self.dir_struct['Normalized_by_{}'.format(par_type)]
-        acts_path = acts_path.joinpath(dir_name)
-        all_files = self.RWT.iterate_pickle_loading(acts_path)
-        vocab = self.CTP.words_count(all_files)
+        print(iden+'Vocab created in {} seconds!'.format(time()-t0))
         return vocab
     
     def create_lem_dict(self,
                         vocab,
-                        par_type='parser1'):
+                        par_type='parser1',
+                        iden=''):
         all_words = list(vocab.keys())
-        print('Strating normalization!')
+        print(iden+'Strating normalization!')
         t0 = time()
         norm_words = self.CTP.lemmatize(all_words, par_type=par_type)
-        print('Normalization complete in {} seconds'.format(time()-t0))
+        print(iden+'Normalization complete in {} seconds'.format(time()-t0))
         lem_dict = {
             raw_word:norm_word
             for (raw_word, norm_word)
@@ -515,68 +542,99 @@ class Constructor():
         }
         return lem_dict
         
-    def save_vocab(self, vocab, file_name, dir_name=''):
+    def save_vocab(self, vocab, spec='raw', dir_name=''):
+        '''
+        Accepted 'spec' args:
+        raw, norm1, lem1
+        '''
         path = self.dir_struct['Statistics_and_data']
-        path = path.joinpath(dir_name, file_name)
+        options = {
+            'raw' : path.joinpath(dir_name, 'vocab_raw_words'),
+            'norm1' : path.joinpath(dir_name, 'vocab_norm1_words'),
+            'norm2' : path.joinpath(dir_name, 'vocab_norm2_words'),
+            'lem1' : path.joinpath(dir_name, 'lem_dict_normed_by_parser1'),
+            'lem2' : path.joinpath(dir_name, 'lem_dict_normed_by_parser2')
+        }
+        path = options[spec]
         self.RWT.write_pickle(vocab, path)
 
-    def load_vocab(self, file_name, dir_name=''):
+    def load_vocab(self, spec='raw', dir_name=''):
+        '''
+        Accepted 'spec' args:
+        raw, norm1, lem
+        '''
         path = self.dir_struct['Statistics_and_data']
-        path = path.joinpath(dir_name, file_name)
-        return self.RWT.load_pickle(path)
-    
-    def save_lem_dict(self, lem_dict, par_type, dir_name=''):
-        path = self.dir_struct['Statistics_and_data']
-        path = path.joinpath(dir_name, 'lem_dict_normed_by_'+par_type)
-        self.RWT.write_pickle(lem_dict, path)
-
-    def load_lem_dict(self, par_type, dir_name=''):
-        path = self.dir_struct['Statistics_and_data']
-        path = path.joinpath(dir_name, 'lem_dict_normed_by_'+par_type)
+        options = {
+            'raw' : path.joinpath(dir_name, 'vocab_raw_words'),
+            'norm1' : path.joinpath(dir_name, 'vocab_norm1_words'),
+            'norm2' : path.joinpath(dir_name, 'vocab_norm2_words'),
+            'lem1' : path.joinpath(dir_name, 'lem_dict_normed_by_parser1'),
+            'lem2' : path.joinpath(dir_name, 'lem_dict_normed_by_parser2')
+        }
+        path = options[spec]
         return self.RWT.load_pickle(path)
     
     def lemmatize_and_save_acts(self,
                                 lem_dict,
                                 par_type='parser1',
                                 load_dir_name='',
-                                save_dir_name=''):
-        path = self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
-        all_acts_gen = self.RWT.iterate_pickle_loading(path)
+                                save_dir_name='',
+                                iden=''):
+        #load paths and lem gen
+        load_path = (
+            self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+        )
+        all_acts_gen = self.RWT.iterate_pickle_loading(load_path)
         lemmed_acts_gen = self.CTP.iterate_lemmatize_by_dict(
             lem_dict,
             all_acts_gen,
             set(lem_dict)
         )
-        acts_quant = len(self.RWT.collect_exist_file_paths(path))
+        #saves paths
+        acts_quants = len(self.RWT.collect_exist_file_paths(load_path))
         save_dir = self.dir_struct['Normalized_by_{}'.format(par_type)]
         save_dir = save_dir.joinpath(save_dir_name)
         writing_paths = deque(sorted(self.RWT.create_writing_paths(
             0,
-            acts_quant,
+            acts_quants,
             save_dir
         )))
+        #process
         t0 = time()
-        print('Start normalization and writing')
+        print(iden+'Start normalization and writing')
         for lem_act in lemmed_acts_gen:
             self.RWT.write_pickle(
                 lem_act,
                 writing_paths.popleft()
             )
-        print('Normalization and writing complete in {} seconds'.format(time()-t0))
+        print(
+            iden+'Normalization and writing '
+            +'complete in {} seconds'.format(time()-t0)
+        )
     
-    def start_conclusions_iteration(self, dir_name=''):
+    def act_and_concl_to_mtrx(self, vector_pop='concl'):
         '''
-        Return generator object over text files' paths
+        Accepted 'vocab' args:
+        'act', 'concl'
         '''
-        path = self.dir_struct['Conclusions'].joinpath(dir_name)
-        return self.RWT.iterate_text_loading(path)
-    
-    def act_and_concl_to_mtrx(self, pars_list, concl):
-        data = [concl] + pars_list
-        self.Vct.vectorizer.fit([concl])
-        data_mtrx = self.Vct.create_vectors(data)
-        update_mtrx = np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
-        return update_mtrx
+        def inner_func1(pars_list, concl):
+            data = [concl] + pars_list
+            self.Vct.vectorizer.fit(data)
+            data_mtrx = self.Vct.create_vectors(data)
+            return data_mtrx
+        def inner_func2(pars_list, concl):
+            data = [concl] + pars_list
+            self.Vct.vectorizer.fit([concl])
+            data_mtrx = self.Vct.create_vectors(data)
+            update_mtrx = (
+                np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
+            )
+            return update_mtrx
+        options = {
+            'act' : inner_func1,
+            'concl': inner_func2
+        }
+        return options[vector_pop]
 
     def eval_cos_dist(self, index_mtrx, output='best'):
         base = index_mtrx[0,:]
@@ -594,29 +652,91 @@ class Constructor():
                                auto_mode=False,
                                concl_dir_name='',
                                load_dir_name='',
-                               save_dir_name=''):
-        concls = self.start_conclusions_iteration(dir_name=concl_dir_name)
+                               save_dir_name='',
+                               vector_pop='concl',
+                               par_type='parser1',
+                               vocab=None,
+                               bigram=True,
+                               rep_ngram=False):
+        #load concls and set mtrx creation finc
+        concls_path = (
+            self.dir_struct['Conclusions'].joinpath(concl_dir_name)
+        )
+        concls = self.RWT.iterate_text_loading(concls_path)
+        mtrx_creator = self.act_and_concl_to_mtrx(vector_pop=vector_pop)
         for concl in concls:
-            concl_cleaned = ' '.join(self.CTP.full_process(concl))
-            #uncl_acts = deque(self.RWT.collect_exist_file_paths(
-            #    self.dir_struct['Divided_and_tokenized']
-            #))
-            path_to_acts = self.dir_struct['Normalized_by_parser1']
+            #load acts
+            path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
+            if vocab:
+                concl_prep = self.CTP.full_process(
+                    concl,
+                    par_type=par_type,
+                    vocab=vocab
+                )
+                if bigram:
+                    #load acts
+                    #path_to_acts = self.dir_struct['2grams']
+                    concl_gram = self.CTP.create_2grams(concl_prep)
+                    if rep_ngram:
+                        concl_rep_gram = (
+                            self.CTP.extract_repetative_ngrams(concl_gram)
+                        )
+                        concl_prep = concl_prep + concl_rep_gram
+                        concl_cleaned = ' '.join(concl_prep)
+                    else:
+                        concl_prep = concl_prep + concl_gram
+                        concl_cleaned = ' '.join(concl_prep)
+                else:
+                    concl_cleaned = ' '.join(concl_prep)          
+            else:
+                concl_prep = self.CTP.full_process(
+                    concl,
+                    par_type=par_type,
+                )
+                if bigram:
+                    #load acts
+                    #path_to_acts = self.dir_struct['2grams']
+                    concl_gram = self.CTP.create_2grams(concl_prep)
+                    if rep_ngram:
+                        concl_rep_gram = (
+                            self.CTP.extract_repetative_ngrams(concl_gram)
+                        )
+                        concl_prep = concl_prep + concl_rep_gram
+                        concl_cleaned = ' '.join(concl_prep)
+                    else:
+                        concl_prep = concl_prep + concl_gram
+                        concl_cleaned = ' '.join(concl_prep)
+                else:
+                    concl_cleaned = ' '.join(concl_prep)
+            #Uncleaned_acts
+            uncl_acts = deque(self.RWT.collect_exist_file_paths(
+                self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+            ))
+            #load acts
             path_to_acts = path_to_acts.joinpath(load_dir_name)
+            print('this is it!', path_to_acts)
             acts = self.RWT.iterate_pickle_loading(path_to_acts)
             print('\n', concl[:50], '\n', sep='')
+            print(concl_cleaned)
             t0 = time()
             holder = []
             for act in acts:
-                #uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
-                act = [' '.join(par_lst) for par_lst in act]
-                data_mtrx = self.act_and_concl_to_mtrx(act, concl_cleaned)
+                uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
+                uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
+                if bigram:
+                    act = [
+                        ' '.join(par_lst + self.CTP.create_2grams(par_lst))
+                        for par_lst in act
+                    ]
+                else:
+                    act = [' '.join(par_lst) for par_lst in act]
+                data_mtrx = mtrx_creator(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 holder.append(
-                    [act[0],
-                    act[2],
+                    [uncl_act[0],
+                    uncl_act[2],
                     cos,
-                    act[par_index-1]] #uncl_act[par_index-1]]
+                    uncl_act[par_index-1]] #act[par_index-1]]
                 )
             t1 = time()
             print(
@@ -682,32 +802,46 @@ class Constructor():
             header=('Слова','Количество вхождений в корпус')            
         )
     
-    def auto(self, dir_name='', sep_type='sep1'):
+    def auto(self, dir_name='', sep_type='sep1', stpw_vocab=None):
         t0=time()
-        print('\t\tStarting division and tokenization!')
-        self.div_tok_acts(dir_name=dir_name, sep_type=sep_type)
-        print('\t\tActs are divided and tokenized')
-        print('\t\tCreating raw words dictionary')
-        vocab_rw = self.vocab_raw_words(dir_name=dir_name)
-        print('\t\tDictionary is created')
-        print('\t\tCreating mapping')
-        self.lem_dict = self.create_lem_dict(vocab_rw)
+        print('Starting division and tokenization!')
+        self.div_tok_acts(
+            dir_name=dir_name,
+            sep_type=sep_type,
+            stpw_vocab=stpw_vocab,
+            iden=''
+        )
+        print('Acts are divided and tokenized')
+        print('Creating raw words dictionary')
+        vocab_rw = self.create_vocab(
+            dir_name=dir_name,
+            spec='raw',
+            iden='\t'
+        )
+        print('Dictionary is created')
+        print('Creating mapping')
+        lem_dict = self.create_lem_dict(vocab_rw, iden='\t')
         print('\t\tMapping is created')
         print('\t\tStarting lemmatization')
-        self.lemmatize_and_save_acts(self.lem_dict,
-                                     load_dir_name=dir_name,
-                                     save_dir_name=dir_name)
-        print('\t\tCreating norm words dictionary')
-        self.vocab_nw = self.vocab_norm_words(dir_name=dir_name)
-        print('\t\tDictionary is created')
-        print('\t\tSaving all dictionaries')
-        self.save_lem_dict(self.lem_dict,
-                           par_type='parser1',
-                           dir_name=dir_name)
-        self.save_vocab(vocab_rw, 'vocab_raw_words', dir_name=dir_name)
-        self.save_vocab(self.vocab_nw, 'vocab_norm1_words', dir_name=dir_name)
-        print('\t\tDictionaries are saved')
-        print('\t\tTotal time costs: {} seconds'.format(time()-t0))
+        self.lemmatize_and_save_acts(
+            lem_dict,
+            load_dir_name=dir_name,
+            save_dir_name=dir_name,
+            iden='\t')
+        print('Creating norm words dictionary')
+        vocab_nw = self.create_vocab(
+            dir_name=dir_name,
+            spec='norm1',
+            iden='\t'
+        )
+        print('Dictionary is created')
+        print('Saving all dictionaries')
+        ###
+        self.save_vocab(vocab_rw, spec='raw', dir_name=dir_name)
+        self.save_vocab(vocab_nw, spec='norm1', dir_name=dir_name)
+        self.save_vocab(lem_dict, spec='lem1', dir_name=dir_name)
+        print('Dictionaries are saved')
+        print('Total time costs: {} seconds'.format(time()-t0))
 
     def load_file(self, full_path):
         return self.RWT.load_pickle(full_path)
@@ -730,83 +864,7 @@ class Constructor():
         path = self.dir_struct['Results']
         path = path.joinpath(dir_name, file_name)
         self.RWT.write_text(obj, path)
-    
-    def _create_2_3_gram_doc(self,
-                             doc_path=None,
-                             gram=2):
-        t0 = time()
-        if doc_path.suffix == '.txt':
-            doc = self.RWT.load_text(doc_path)
-        else:
-            doc = self.RWT.load_pickle(doc_path)
-        vocab = Counter()
-        all_words = self.CTP.collect_all_words(doc) 
-        if gram == 2:
-            holder = deque(maxlen=2)
-            while all_words:
-                try:
-                    holder.appendleft(all_words.pop())
-                    holder.appendleft(all_words.pop())
-                except:
-                    break
-                vocab.update([' '.join(holder)])
-        elif gram == 3:
-            holder = deque(maxlen=3)
-            while all_words:
-                try:
-                    holder.appendleft(all_words.pop())
-                    holder.appendleft(all_words.pop())
-                    holder.appendleft(all_words.pop())
-                except:
-                    break
-                vocab.update([' '.join(holder)])
-        print('Ngrams collected in {} seconds'.format(time()-t0))
-        return vocab
-    
-    def _create_2_3_gram_corp(self,
-                             path=None,
-                             gram=2,
-                             norm=True,
-                             par_type='parser1',
-                             dir_name=''):
-        t0 = time()
-        if path:
-            acts_gen = self.RWT.iterate_pickle_loading(
-                pthl.Path(path)
-            )
-        elif norm:
-            load_path = self.dir_struct['Normalized_by_{}'.format(par_type)]
-            load_path = load_path.joinpath(dir_name)        
-            acts_gen = self.RWT.iterate_pickle_loading(load_path)
-        else:
-            load_path = self.dir_struct['Divided_and_tokenized']
-            load_path = load_path.joinpath(dir_name)
-            acts_gen = self.RWT.iterate_pickle_loading(load_path)
-        vocab = Counter()
-        for act in acts_gen:
-            all_words = self.CTP.collect_all_words(act) 
-            if gram == 2:
-                holder = deque(maxlen=2)
-                while all_words:
-                    try:
-                        holder.appendleft(all_words.pop())
-                        holder.appendleft(all_words.pop())
-                    except:
-                        break
-                    vocab.update([' '.join(holder)])
-            elif gram == 3:
-                holder = deque(maxlen=3)
-                while all_words:
-                    try:
-                        holder.appendleft(all_words.pop())
-                        holder.appendleft(all_words.pop())
-                        holder.appendleft(all_words.pop())
-                    except:
-                        break
-                    vocab.update([' '.join(holder)])
-        print('Ngrams collected in {} seconds'.format(time()-t0))
-        return vocab
-    
+      
     def gram_to_csv(self, gram_obj, file_name='Ngram', dir_name=''):
         path = self.dir_struct['Results']
         path = path.joinpath(file_name).with_suffix('.csv')
@@ -862,81 +920,6 @@ class Constructor():
             'complete in {} seconds'.format(time()-t0)
         )
     
-    def export_cd_eval_results_bigram(self,
-                                      gram=2,
-                                      auto_mode=False,
-                                      concl_dir_name='',
-                                      load_dir_name='',
-                                      save_dir_name='',
-                                      vocab=None):
-        concls = self.start_conclusions_iteration(dir_name=concl_dir_name)
-        for concl in concls:
-            if vocab:
-                concl_prep = self.CTP.tokenize_wo_stpw(vocab)(concl)
-            else:
-                concl_prep = self.CTP.tokenize(concl)
-            #print(concl_prep)
-            concl_gram = self.CTP.create_2grams(concl_prep)
-            concl_rep_gram = self.CTP.extract_repetative_ngrams(concl_gram)
-            concl_prep = concl_prep + concl_rep_gram
-            concl_cleaned = ' '.join(concl_prep)
-            print(concl_cleaned)
-            uncl_acts = deque(self.RWT.collect_exist_file_paths(
-                self.dir_struct['Divided_and_tokenized'].joinpath('2018-04-24')
-            ))
-            path_to_acts = self.dir_struct['{}grams'.format(gram)]
-            path_to_acts = path_to_acts.joinpath(load_dir_name)
-            acts = self.RWT.iterate_pickle_loading(path_to_acts)
-            print('\n', concl[:50], '\n', sep='')
-            t0 = time()
-            holder = []
-            for act in acts:
-                uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
-                uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
-                act = [' '.join(par_lst) for par_lst in act]
-                data_mtrx = self.act_and_concl_to_mtrx(act, concl_cleaned)
-                par_index, cos = self.eval_cos_dist(data_mtrx)
-                holder.append(
-                    [uncl_act[0],
-                    uncl_act[2],
-                    cos,
-                    uncl_act[par_index-1]] #act[par_index-1]]
-                )
-            t1 = time()
-            print(
-                'Acts were processed!',
-                'Time in seconds: {}'.format(t1-t0)
-            )
-            holder = sorted(holder, key=lambda x: x[2])
-            t2 = time()
-            print(
-                'Results were sorted!',
-                'Time in seconds: {}'.format(t2-t1)
-            )
-            name = concl[:40]
-            self.table_to_csv(
-                holder,
-                dir_name=save_dir_name,
-                header=('Суд','Реквизиты','Косинус', 'Абзац'),
-                zero_string = concl,
-                file_name=name
-            )
-            if not auto_mode:
-                breaker = None
-                while breaker != '1' and breaker != '0':
-                    breaker = input(
-                    ("Обработка вывода окончена. Обработать следующий вывод? "
-                    +"[1 for 'yes'/0 for 'no']")
-                    )
-                    if breaker != '1' and breaker != '0':
-                        print('Вы ввели неподдерживаемое значение!')
-                if breaker == '0':
-                    print('Programm was terminated')
-                    break
-                elif breaker == '1':
-                    print('Continue execution')
-        print('Execution ended')
-    
     def collect_3grams(self,
                        gram=3,
                        load_dir_name='',
@@ -974,70 +957,3 @@ class Constructor():
             'Collecting bigrams and writing '+
             'complete in {} seconds'.format(time()-t0)
         )
-    
-    def export_cd_eval_results_trigram(self,
-                                       gram=3,
-                                       auto_mode=False,
-                                       concl_dir_name='',
-                                       load_dir_name='',
-                                       save_dir_name=''):
-        concls = self.start_conclusions_iteration(dir_name=concl_dir_name)
-        for concl in concls:
-            concl_prep = self.CTP.tokenize(concl)
-            concl_prep = concl_prep + self.CTP.create_3grams(concl_prep)
-            concl_cleaned = ' '.join(concl_prep)
-            uncl_acts = deque(self.RWT.collect_exist_file_paths(
-                self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
-            ))
-            path_to_acts = self.dir_struct['{}grams'.format(gram)]
-            path_to_acts = path_to_acts.joinpath(load_dir_name)
-            acts = self.RWT.iterate_pickle_loading(path_to_acts)
-            print('\n', concl[:50], '\n', sep='')
-            t0 = time()
-            holder = []
-            for act in acts:
-                uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
-                uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
-                act = [' '.join(par_lst) for par_lst in act]
-                data_mtrx = self.act_and_concl_to_mtrx(act, concl_cleaned)
-                par_index, cos = self.eval_cos_dist(data_mtrx)
-                holder.append(
-                    [uncl_act[0],
-                    uncl_act[2],
-                    cos,
-                    uncl_act[par_index-1]] #act[par_index-1]]
-                )
-            t1 = time()
-            print(
-                'Acts were processed!',
-                'Time in seconds: {}'.format(t1-t0)
-            )
-            holder = sorted(holder, key=lambda x: x[2])
-            t2 = time()
-            print(
-                'Results were sorted!',
-                'Time in seconds: {}'.format(t2-t1)
-            )
-            name = concl[:40]
-            self.table_to_csv(
-                holder,
-                dir_name=save_dir_name,
-                header=('Суд','Реквизиты','Косинус', 'Абзац'),
-                zero_string = concl,
-                file_name=name
-            )
-            if not auto_mode:
-                breaker = None
-                while breaker != '1' and breaker != '0':
-                    breaker = input(
-                    ("Обработка вывода окончена. Обработать следующий вывод? "
-                    +"[1 for 'yes'/0 for 'no']")
-                    )
-                    if breaker != '1' and breaker != '0':
-                        print('Вы ввели неподдерживаемое значение!')
-                if breaker == '0':
-                    print('Programm was terminated')
-                    break
-                elif breaker == '1':
-                    print('Continue execution')
-        print('Execution ended')
