@@ -231,53 +231,10 @@ class CustomTextProcessor():
                     text_holder.append(self.tokenize(par))
             yield text_holder
     
-    def tokenize_wo_stpw(self, vocab):
-        def inner_func(text):
-            text = text.lower().strip()
-            return [
-                token
-                for token in re.split('\W', text)
-                    if len(token)>1 and token not in vocab
-            ]
-        return inner_func
-    
     def remove_stpw_from_list(self, list_obj, vocab):
         return [w for w in list_obj if w not in vocab]
     
-    def iterate_tokenization_wo_stpw(self, text_gen, vocab):
-        '''
-        Return generator object
-        '''
-        tokenizer = self.tokenize_wo_stpw(vocab)
-        for text in text_gen:
-            text_holder=[]
-            pars_list = text.split('\n')
-            for par in pars_list:
-                if par:
-                    text_holder.append(tokenizer(par))
-            yield text_holder
-    
     def lemmatize(self, tokens_list, par_type='parser1'):
-        self.change_parser(par_type=par_type)
-        parser = self.parser
-        if par_type == 'parser1':
-            return [parser(token) for token in tokens_list]
-        else:
-            result = []
-            for token in tokens_list:
-                try:
-                    norm = parser(token)
-                except:
-                    norm = token
-                result.append(norm)
-            return result
-    
-    def lemmatize_wo_stpw(self, vocab):
-        
-        
-        tokens_list, par_type='parser1'):
-        
-        
         self.change_parser(par_type=par_type)
         parser = self.parser
         if par_type == 'parser1':
@@ -307,11 +264,10 @@ class CustomTextProcessor():
             yield act
     
     def full_process(self, text, par_type='parser1', vocab=None):
-        if vocab:
-            tokens = self.tokenize_wo_stpw(vocab)(text)
-        else:
-            tokens = self.tokenize(text)
+        tokens = self.tokenize(text)
         lemms = self.lemmatize(tokens, par_type=par_type)
+        if vocab:
+            lemms = [w for w in lemms if w not in vocab]
         return lemms
     
     def iterate_full_processing(self, iter_obj):
@@ -485,7 +441,6 @@ class Constructor():
     def div_tok_acts(self,
                      dir_name='',
                      sep_type='sep1',
-                     stpw_vocab=None,
                      iden=''):
         path = self.dir_struct['Raw_text'].joinpath(dir_name)
         raw_files = self.RWT.iterate_text_loading(path)
@@ -498,12 +453,7 @@ class Constructor():
                 cleaned,
                 sep_type=sep_type
             )
-            if stpw_vocab:
-                tokenized = (
-                    self.CTP.iterate_tokenization_wo_stpw(divided, stpw_vocab)
-                )
-            else:
-                tokenized = self.CTP.iterate_tokenization(divided)
+            tokenized = self.CTP.iterate_tokenization(divided)
             counter2 += len(divided)
             t0=time()
             print(iden+'\tStarting tokenization and writing')
@@ -847,7 +797,6 @@ class Constructor():
         self.div_tok_acts(
             dir_name=dir_name,
             sep_type=sep_type,
-            stpw_vocab=stpw_vocab,
             iden='\t'
         )
         print('Acts are divided and tokenized')
