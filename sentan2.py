@@ -272,6 +272,26 @@ class CustomTextProcessor():
                 result.append(norm)
             return result
     
+    def lemmatize_wo_stpw(self, vocab):
+        
+        
+        tokens_list, par_type='parser1'):
+        
+        
+        self.change_parser(par_type=par_type)
+        parser = self.parser
+        if par_type == 'parser1':
+            return [parser(token) for token in tokens_list]
+        else:
+            result = []
+            for token in tokens_list:
+                try:
+                    norm = parser(token)
+                except:
+                    norm = token
+                result.append(norm)
+            return result
+    
     def lemmatize_by_dict(self, lem_dict, tokens_list, verifier):
         return [lem_dict[token] for token in tokens_list if token in verifier]
     
@@ -656,7 +676,7 @@ class Constructor():
                                vector_pop='concl',
                                par_type='parser1',
                                vocab=None,
-                               bigram=True,
+                               bigram='join',
                                rep_ngram=False):
         #load concls and set mtrx creation finc
         concls_path = (
@@ -673,7 +693,7 @@ class Constructor():
                     par_type=par_type,
                     vocab=vocab
                 )
-                if bigram:
+                if bigram =='join':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -684,6 +704,15 @@ class Constructor():
                     else:
                         concl_prep = concl_prep + concl_gram
                         concl_cleaned = ' '.join(concl_prep)
+                elif bigram == 'only':
+                    concl_gram = self.CTP.create_2grams(concl_prep)
+                    if rep_ngram:
+                        concl_rep_gram = (
+                            self.CTP.extract_repetitive_ngrams(concl_gram)
+                        )
+                        concl_cleaned = ' '.join(concl_rep_gram)
+                    else:
+                        concl_cleaned = ' '.join(concl_gram)
                 else:
                     concl_cleaned = ' '.join(concl_prep)          
             else:
@@ -691,7 +720,7 @@ class Constructor():
                     concl,
                     par_type=par_type,
                 )
-                if bigram:
+                if bigram =='join':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -702,6 +731,15 @@ class Constructor():
                     else:
                         concl_prep = concl_prep + concl_gram
                         concl_cleaned = ' '.join(concl_prep)
+                elif bigram == 'only':
+                    concl_gram = self.CTP.create_2grams(concl_prep)
+                    if rep_ngram:
+                        concl_rep_gram = (
+                            self.CTP.extract_repetitive_ngrams(concl_gram)
+                        )
+                        concl_cleaned = ' '.join(concl_rep_gram)
+                    else:
+                        concl_cleaned = ' '.join(concl_gram)
                 else:
                     concl_cleaned = ' '.join(concl_prep)
             #Uncleaned_acts
@@ -719,9 +757,14 @@ class Constructor():
             for act in acts:
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
-                if bigram:
+                if bigram == 'join':
                     act = [
                         ' '.join(par_lst + self.CTP.create_2grams(par_lst))
+                        for par_lst in act
+                    ]
+                elif bigram == 'only':
+                    act = [
+                        ' '.join(self.CTP.create_2grams(par_lst))
                         for par_lst in act
                     ]
                 else:
