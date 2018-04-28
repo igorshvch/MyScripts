@@ -674,8 +674,6 @@ class Constructor():
                     vocab=vocab
                 )
                 if bigram:
-                    #load acts
-                    #path_to_acts = self.dir_struct['2grams']
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -694,8 +692,6 @@ class Constructor():
                     par_type=par_type,
                 )
                 if bigram:
-                    #load acts
-                    #path_to_acts = self.dir_struct['2grams']
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -714,7 +710,7 @@ class Constructor():
             ))
             #load acts
             path_to_acts = path_to_acts.joinpath(load_dir_name)
-            print('this is it!', path_to_acts)
+            #print('this is it!', path_to_acts)
             acts = self.RWT.iterate_pickle_loading(path_to_acts)
             print('\n', concl[:50], '\n', sep='')
             print(concl_cleaned)
@@ -809,7 +805,7 @@ class Constructor():
             dir_name=dir_name,
             sep_type=sep_type,
             stpw_vocab=stpw_vocab,
-            iden=''
+            iden='\t'
         )
         print('Acts are divided and tokenized')
         print('Creating raw words dictionary')
@@ -821,8 +817,8 @@ class Constructor():
         print('Dictionary is created')
         print('Creating mapping')
         lem_dict = self.create_lem_dict(vocab_rw, iden='\t')
-        print('\t\tMapping is created')
-        print('\t\tStarting lemmatization')
+        print('Mapping is created')
+        print('Starting lemmatization')
         self.lemmatize_and_save_acts(
             lem_dict,
             load_dir_name=dir_name,
