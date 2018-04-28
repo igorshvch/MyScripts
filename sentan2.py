@@ -375,10 +375,10 @@ class CustomTextProcessor():
             return holder
         return inner_func
     
-    def extract_repetative_ngrams(self, ngram_list, rep_num=2):
+    def extract_repetitive_ngrams(self, ngram_list, rep_num=2):
         holder = Counter()
         holder.update(ngram_list)
-        holder_rep = [ngram for ngram,value in holder.items() if value >=2]
+        holder_rep = [ngram for ngram,value in holder.items() if value >= rep_num]
         print(holder_rep)
         return holder_rep
 
@@ -679,7 +679,7 @@ class Constructor():
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
-                            self.CTP.extract_repetative_ngrams(concl_gram)
+                            self.CTP.extract_repetitive_ngrams(concl_gram)
                         )
                         concl_prep = concl_prep + concl_rep_gram
                         concl_cleaned = ' '.join(concl_prep)
@@ -699,7 +699,7 @@ class Constructor():
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
-                            self.CTP.extract_repetative_ngrams(concl_gram)
+                            self.CTP.extract_repetitive_ngrams(concl_gram)
                         )
                         concl_prep = concl_prep + concl_rep_gram
                         concl_cleaned = ' '.join(concl_prep)
