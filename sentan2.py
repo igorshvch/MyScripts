@@ -356,8 +356,8 @@ class CustomTextProcessor():
 
 
 class Vectorization():
-    def __init__(self):
-        self.vectorizer = CountVectorizer(token_pattern='\w+')
+    def __init__(self, token_pattern='\w+'):
+        self.vectorizer = CountVectorizer(token_pattern=token_pattern)
         print('Vct class created')
     
     def create_vocab(self, tokens_lst, threshold=1):
@@ -374,10 +374,11 @@ class Vectorization():
 class Constructor():
     def __init__(self,
                  enc='cp1251',
-                 dir_structure=None):
+                 dir_structure=None,
+                 token_pattern='\w+'):
         self.RWT = ReadWriteTool(enc=enc)
         self.CTP = CustomTextProcessor()
-        self.Vct = Vectorization()
+        self.Vct = Vectorization(token_pattern=token_pattern)
         if dir_structure:
             self.dir_struct = dir_structure
             print(
@@ -702,7 +703,7 @@ class Constructor():
             print(concl_cleaned, '\n', sep='')
             t0 = time()
             holder = []
-            counter = 0
+            #counter = 0
             for act in acts:
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
