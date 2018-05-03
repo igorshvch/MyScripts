@@ -3,7 +3,11 @@ import pathlib as pthl
 path = pthl.Path().home().joinpath('MYWRITE')
 path.mkdir(parents=True, exist_ok=True)
 
-def writer(iterable_object, file_name_string, prefix='custome', mode='a'):
+def writer(iterable_object,
+           file_name_string,
+           prefix='custome',
+           mode='a',
+           verbose=True):
     '''
     Accepts iterable objects containing strings
     or a string object itselfe
@@ -28,7 +32,8 @@ def writer(iterable_object, file_name_string, prefix='custome', mode='a'):
     else:
         with open(inner_path, mode=mode) as file:
             file.write(iterable_object)
-    print('OK')
+    if verbose:
+        print('OK')
 
 def recode(root_path, paths, verbose=True):
     root_path = pthl.Path(root_path)

@@ -9,6 +9,7 @@ from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter, deque
 from nltk.corpus import stopwords
+#from writer import writer
 
 # Term 'bc' in comments below means 'backward compatibility'
 
@@ -215,9 +216,13 @@ class CustomTextProcessor():
         )
         return separated_acts
             
-    def tokenize(self, text):
+    def tokenize(self, text, threshold=1):
         text = text.lower().strip()
-        return [token for token in re.split('\W', text) if len(token)>1]
+        return [
+            token
+            for token in re.split('\W', text)
+                if len(token) > threshold
+        ]
     
     def iterate_tokenization(self, text_gen):
         '''
@@ -270,16 +275,6 @@ class CustomTextProcessor():
             lemms = [w for w in lemms if w not in vocab]
         return lemms
     
-    def iterate_full_processing(self, iter_obj):
-        holder = []
-        for text in iter_obj:
-            text_holder=[]
-            pars_list = text.split('\n')
-            for par in pars_list:
-                text_holder.append(self.full_process(par))
-            holder.append(text_holder)
-        return holder
-    
     def words_count(self, acts_gen):
         t0 = time()
         vocab = Counter()
@@ -306,7 +301,7 @@ class CustomTextProcessor():
         lp = len(par)
         if lp > 1:
             for i in range(1, lp, 1):
-                bigram = par[i-1] + ' ' + par[i]
+                bigram = par[i-1] + '_' + par[i]
                 holder.append(bigram)
         return holder
     
@@ -317,7 +312,7 @@ class CustomTextProcessor():
             la = len(par)
             if la > 1:
                 for i in range(1, la, 1):
-                    bigram = par[i-1] + ' ' + par[i]
+                    bigram = par[i-1] + '_' + par[i]
                     holder.append(bigram)
             return holder
         return inner_func
@@ -329,8 +324,8 @@ class CustomTextProcessor():
             for i in range(2, la, 1):
                 trigram = (
                     par[i-2]
-                    + ' ' + par[i-1]
-                    + ' ' + par[i]
+                    + '_' + par[i-1]
+                    + '_' + par[i]
                 )
                 holder.append(trigram)       
         return holder
@@ -344,24 +339,25 @@ class CustomTextProcessor():
                 for i in range(2, la, 1):
                     trigram = (
                         par[i-2]
-                        + ' ' + par[i-1]
-                        + ' ' + par[i]
+                        + '_' + par[i-1]
+                        + '_' + par[i]
                     )
                     holder.append(trigram)       
             return holder
         return inner_func
     
-    def extract_repetitive_ngrams(self, ngram_list, rep_num=2):
+    def extract_repetitive_ngrams(self, ngram_list, rep_num=2, verbose=True):
         holder = Counter()
         holder.update(ngram_list)
         holder_rep = [ngram for ngram,value in holder.items() if value >= rep_num]
-        print(holder_rep)
+        if verbose:
+            print(holder_rep)
         return holder_rep
 
 
 class Vectorization():
     def __init__(self):
-        self.vectorizer = CountVectorizer()
+        self.vectorizer = CountVectorizer(token_pattern='\w+')
         print('Vct class created')
     
     def create_vocab(self, tokens_lst, threshold=1):
@@ -627,7 +623,9 @@ class Constructor():
                                par_type='parser1',
                                vocab=None,
                                bigram='join',
-                               rep_ngram=False):
+                               rep_ngram=False,
+                               rep_ngram_act=False):#,
+                               #conj=False):
         #load concls and set mtrx creation finc
         concls_path = (
             self.dir_struct['Conclusions'].joinpath(concl_dir_name)
@@ -643,7 +641,7 @@ class Constructor():
                     par_type=par_type,
                     vocab=vocab
                 )
-                if bigram =='join':
+                if bigram == 'join':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -670,7 +668,7 @@ class Constructor():
                     concl,
                     par_type=par_type,
                 )
-                if bigram =='join':
+                if bigram == 'join':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -701,24 +699,74 @@ class Constructor():
             #print('this is it!', path_to_acts)
             acts = self.RWT.iterate_pickle_loading(path_to_acts)
             print('\n', concl[:50], '\n', sep='')
-            print(concl_cleaned)
+            print(concl_cleaned, '\n', sep='')
             t0 = time()
             holder = []
+            counter = 0
             for act in acts:
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
                 if bigram == 'join':
-                    act = [
-                        ' '.join(par_lst + self.CTP.create_2grams(par_lst))
-                        for par_lst in act
-                    ]
+                    if vocab:
+                        act = [
+                            self.CTP.remove_stpw_from_list(
+                                par,
+                                vocab
+                            )
+                            for par in act
+                        ]
+                    if rep_ngram_act:
+                        act = [
+                            ' '.join(
+                                par_lst 
+                                +
+                                self.CTP.extract_repetitive_ngrams(
+                                    self.CTP.create_2grams(par_lst),
+                                    verbose=False
+                                )
+                            )
+                            for par_lst in act
+                        ]
+                    else:
+                        act = [
+                            ' '.join(
+                                par_lst + self.CTP.create_2grams(par_lst)
+                            )
+                            for par_lst in act
+                        ]
                 elif bigram == 'only':
                     act = [
-                        ' '.join(self.CTP.create_2grams(par_lst))
-                        for par_lst in act
-                    ]
+                            self.CTP.remove_stpw_from_list(
+                                par,
+                                vocab
+                            )
+                            for par in act
+                        ]
+                    if rep_ngram_act:
+                        act = [
+                            ' '.join(
+                                self.CTP.extract_repetitive_ngrams(
+                                    self.CTP.create_2grams(par_lst),
+                                    verbose=False
+                                )
+                            )
+                            for par_lst in act
+                        ]
+                    else:
+                        act = [
+                            ' '.join(self.CTP.create_2grams(par_lst))
+                            for par_lst in act
+                        ]
                 else:
-                    act = [' '.join(par_lst) for par_lst in act]
+                    act = [
+                            self.CTP.remove_stpw_from_list(
+                                par,
+                                vocab
+                            )
+                            for par in act
+                        ]
+                #writer(act, 'act{}'.format(str(counter)), verbose=False)
+                #counter+=1
                 data_mtrx = mtrx_creator(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 holder.append(
@@ -735,8 +783,10 @@ class Constructor():
             holder = sorted(holder, key=lambda x: x[2])
             t2 = time()
             print(
+                '\n',
                 'Results were sorted!',
-                'Time in seconds: {}'.format(t2-t1)
+                'Time in seconds: {}'.format(t2-t1),
+                sep=''
             )
             name = concl[:40]
             self.table_to_csv(
@@ -751,7 +801,7 @@ class Constructor():
                 while breaker != '1' and breaker != '0':
                     breaker = input(
                     ("Обработка вывода окончена. Обработать следующий вывод? "
-                    +"[1 for 'yes'/0 for 'no']")
+                    +"[1 for 'yes'/0 for 'no']\n")
                     )
                     if breaker != '1' and breaker != '0':
                         print('Вы ввели неподдерживаемое значение!')
