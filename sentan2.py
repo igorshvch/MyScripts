@@ -49,6 +49,15 @@ PATTERN_ACT_SEP2 = (
     'Документ предоставлен КонсультантПлюс'
 )
 
+FILE_NAMES = {
+    'Как определить налоговую базу по НДС при': '541',
+    'Необходимо ли для подтверждения ставки Н': '581',
+    'Освобождается ли от НДС предоставление ж': '553',
+    'Правомерно ли начисление штрафа, если эк': '590_1',
+    'Увеличивается ли налоговая база по НДС н': '551',
+    'Является ли непредставление поставщиком ': '525'
+}
+
 #pymoprhy2 analyzer instance
 MORPH = pymorphy2.MorphAnalyzer()
 
@@ -216,7 +225,7 @@ class CustomTextProcessor():
         )
         return separated_acts
             
-    def tokenize(self, text, threshold=1):
+    def tokenize(self, text, threshold=0):
         text = text.lower().strip()
         return [
             token
@@ -353,6 +362,30 @@ class CustomTextProcessor():
         if verbose:
             print(holder_rep)
         return holder_rep
+    
+    def intersect_2gr(self, par, stpw, par_type='txt', verbose=True):
+        if par_type == 'txt':
+            lems = self.full_process(par)
+            cleaned_lems = self.full_process(
+                par,
+                par_type='parser1',
+                vocab=stpw
+            )
+        elif par_type == 'lst':
+            lems = par
+            cleaned_lems = [w for w in par if w not in stpw]
+        bigr_lems = self.create_2grams(lems)
+        bigr_cl_lems = self.create_2grams(cleaned_lems)
+        common = set(bigr_lems) & set(bigr_cl_lems)
+        result = [
+            bigr
+            for bigr in bigr_lems
+                if
+                bigr in common
+        ]
+        if verbose:
+            print('Intersection result:\n{}'.format(result))
+        return result
 
 
 class Vectorization():
@@ -360,7 +393,7 @@ class Vectorization():
         self.vectorizer = CountVectorizer(token_pattern=token_pattern)
         print('Vct class created')
     
-    def create_vocab(self, tokens_lst, threshold=1):
+    def create_vocab(self, tokens_lst, threshold=0):
         toks_list = [w for par in tokens_lst for w in par if len(w) > threshold]
         self.vectorizer.fit(set(toks_list))
     
@@ -588,7 +621,10 @@ class Constructor():
             data = [concl] + pars_list
             self.Vct.vectorizer.fit(data)
             data_mtrx = self.Vct.create_vectors(data)
-            return data_mtrx
+            update_mtrx = (
+                np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
+            )
+            return update_mtrx
         def inner_func2(pars_list, concl):
             data = [concl] + pars_list
             self.Vct.vectorizer.fit([concl])
@@ -614,7 +650,16 @@ class Constructor():
             return sorted(holder, key = lambda x: x[1])[0]
         else:
             raise TypeError('Wrong key argument for "output"!')
-
+    
+    def summon_conclusions(self, dir_name):
+        path = self.dir_struct['Conclusions'].joinpath(dir_name)
+        paths = self.RWT.collect_exist_file_paths(path, suffix='.txt')
+        holder = {}
+        for p in paths:
+            with open(p) as file:
+                holder[p.stem] = file.read()
+        return holder
+    
     def export_cd_eval_results(self,
                                auto_mode=False,
                                concl_dir_name='',
@@ -625,8 +670,7 @@ class Constructor():
                                vocab=None,
                                bigram='join',
                                rep_ngram=False,
-                               rep_ngram_act=False):#,
-                               #conj=False):
+                               rep_ngram_act=False):
         #load concls and set mtrx creation finc
         concls_path = (
             self.dir_struct['Conclusions'].joinpath(concl_dir_name)
@@ -636,7 +680,17 @@ class Constructor():
         for concl in concls:
             #load acts
             path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
-            if vocab:
+            ############################
+            if bigram == 'intersection' and vocab:
+                concl_prep = self.CTP.full_process(
+                    concl,
+                    par_type=par_type,
+                    vocab=vocab
+                )
+                int_bigrs = self.CTP.intersect_2gr(concl, vocab)
+                concl_cleaned = ' '.join(concl_prep+int_bigrs)
+            ###########
+            elif vocab:
                 concl_prep = self.CTP.full_process(
                     concl,
                     par_type=par_type,
@@ -653,7 +707,7 @@ class Constructor():
                     else:
                         concl_prep = concl_prep + concl_gram
                         concl_cleaned = ' '.join(concl_prep)
-                elif bigram == 'only':
+                elif bigram == 'simple':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -662,7 +716,7 @@ class Constructor():
                         concl_cleaned = ' '.join(concl_rep_gram)
                     else:
                         concl_cleaned = ' '.join(concl_gram)
-                else:
+                elif bigram == 'no':
                     concl_cleaned = ' '.join(concl_prep)          
             else:
                 concl_prep = self.CTP.full_process(
@@ -680,7 +734,7 @@ class Constructor():
                     else:
                         concl_prep = concl_prep + concl_gram
                         concl_cleaned = ' '.join(concl_prep)
-                elif bigram == 'only':
+                elif bigram == 'simple':
                     concl_gram = self.CTP.create_2grams(concl_prep)
                     if rep_ngram:
                         concl_rep_gram = (
@@ -689,7 +743,7 @@ class Constructor():
                         concl_cleaned = ' '.join(concl_rep_gram)
                     else:
                         concl_cleaned = ' '.join(concl_gram)
-                else:
+                elif bigram == 'no':
                     concl_cleaned = ' '.join(concl_prep)
             #Uncleaned_acts
             uncl_acts = deque(self.RWT.collect_exist_file_paths(
@@ -707,7 +761,26 @@ class Constructor():
             for act in acts:
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
-                if bigram == 'join':
+                ############################
+                if bigram == 'intersection' and vocab:
+                    act = [
+                            self.CTP.remove_stpw_from_list(
+                                par,
+                                vocab
+                            )
+                            +
+                            self.CTP.intersect_2gr(
+                                par,
+                                vocab,
+                                verbose=False,
+                                par_type='lst'
+                            )
+                            for par in act
+                        ]
+                    act = [' '.join(par) for par in act]
+                    #writer(act, 'act{}'.format(counter), verbose=False)
+                ######################        
+                elif bigram == 'join':
                     if vocab:
                         act = [
                             self.CTP.remove_stpw_from_list(
@@ -735,8 +808,9 @@ class Constructor():
                             )
                             for par_lst in act
                         ]
-                elif bigram == 'only':
-                    act = [
+                elif bigram == 'simple':
+                    if vocab:
+                        act = [
                             self.CTP.remove_stpw_from_list(
                                 par,
                                 vocab
@@ -747,29 +821,31 @@ class Constructor():
                         act = [
                             ' '.join(
                                 self.CTP.extract_repetitive_ngrams(
-                                    self.CTP.create_2grams(par_lst),
+                                    self.CTP.create_2grams(par),
                                     verbose=False
                                 )
                             )
-                            for par_lst in act
+                            for par in act
                         ]
                     else:
                         act = [
-                            ' '.join(self.CTP.create_2grams(par_lst))
-                            for par_lst in act
+                            ' '.join(self.CTP.create_2grams(par))
+                            for par in act
                         ]
-                else:
+                elif bigram == 'no':
                     act = [
-                            self.CTP.remove_stpw_from_list(
+                            ' '.join(self.CTP.remove_stpw_from_list(
                                 par,
                                 vocab
-                            )
+                            ))
                             for par in act
                         ]
                 #writer(act, 'act{}'.format(str(counter)), verbose=False)
-                #counter+=1
                 data_mtrx = mtrx_creator(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
+                #counter+=1
+                #if counter%500 == 0:
+                    #print(counter)
                 holder.append(
                     [uncl_act[0],
                     uncl_act[2],
@@ -795,7 +871,7 @@ class Constructor():
                 dir_name=save_dir_name,
                 header=('Суд','Реквизиты','Косинус', 'Абзац'),
                 zero_string = concl,
-                file_name=name
+                file_name=FILE_NAMES[name]
             )
             if not auto_mode:
                 breaker = None
@@ -842,7 +918,7 @@ class Constructor():
             header=('Слова','Количество вхождений в корпус')            
         )
     
-    def auto(self, dir_name='', sep_type='sep1', stpw_vocab=None):
+    def auto(self, dir_name='', sep_type='sep1'):
         t0=time()
         print('Starting division and tokenization!')
         self.div_tok_acts(

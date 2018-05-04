@@ -35,12 +35,16 @@ def writer(iterable_object,
     if verbose:
         print('OK')
 
-def recode(root_path, paths, verbose=True):
+def recode(root_path, paths, encodings, verbose=True):
     root_path = pthl.Path(root_path)
     for path in paths:
-        with open(root_path.joinpath(path), mode='r', encoding='koi8_r') as file:
+        with open(
+            root_path.joinpath(path), mode='r', encoding=encodings[0]
+        ) as file:
             text = file.read()
-        with open(root_path.joinpath(path), mode='w', encoding='cp1251') as file:
+        with open(
+            root_path.joinpath(path), mode='w', encoding=encodings[1]
+        ) as file:
             file.write(text)
         if verbose:
             print("File '{}' recoded!".format(path))
