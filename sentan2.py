@@ -6,7 +6,7 @@ import pickle
 import pathlib as pthl
 from time import time, strftime
 from scipy.spatial.distance import cosine as sp_cosine
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import Counter, deque
 from nltk.corpus import stopwords
 #from writer import writer
@@ -390,15 +390,12 @@ class CustomTextProcessor():
 
 class Vectorization():
     def __init__(self, token_pattern='\w+'):
-        self.vectorizer = CountVectorizer(token_pattern=token_pattern)
+        self.C_vectorizer = CountVectorizer(token_pattern=token_pattern)
+        self.T_vectorizer = TfidfVectorizer(token_pattern=token_pattern)
         print('Vct class created')
     
-    def create_vocab(self, tokens_lst, threshold=0):
-        toks_list = [w for par in tokens_lst for w in par if len(w) > threshold]
-        self.vectorizer.fit(set(toks_list))
-    
-    def create_vectors(self, pars_lst):
-        compressed_mtrx = self.vectorizer.transform(pars_lst)
+    def create_vectors(self, pars_lst, vectorizer):
+        compressed_mtrx = vectorizer.transform(pars_lst)
         result_mtrx = compressed_mtrx.toarray()
         assert len(pars_lst) == result_mtrx.shape[0]
         return result_mtrx
@@ -612,27 +609,55 @@ class Constructor():
             +'complete in {} seconds'.format(time()-t0)
         )
     
-    def act_and_concl_to_mtrx(self, vector_pop='concl'):
+    def act_and_concl_to_mtrx(self,
+                              vector_pop='concl',
+                              vect_model=None,
+                              addition=True,
+                              fill_val=1):
         '''
         Accepted 'vocab' args:
         'act', 'concl'
+        Accepted 'vect_model' args:
+        'count', 'tfidf'
         '''
+        if vect_model == 'count':
+            vectorizer = self.Vct.C_vectorizer
+        elif vect_model == 'tfidf':
+            vectorizer = self.Vct.T_vectorizer
         def inner_func1(pars_list, concl):
             data = [concl] + pars_list
-            self.Vct.vectorizer.fit(data)
-            data_mtrx = self.Vct.create_vectors(data)
-            update_mtrx = (
-                np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
-            )
-            return update_mtrx
+            vectorizer.fit(data)
+            data_mtrx = self.Vct.create_vectors(data, vectorizer)
+            if addition:
+                update_mtrx = (
+                    np.append(
+                        data_mtrx,
+                        np.full(
+                            (len(data_mtrx),1), fill_val
+                            ),
+                        1
+                    )
+                )
+                return update_mtrx
+            else:
+                return data_mtrx
         def inner_func2(pars_list, concl):
             data = [concl] + pars_list
-            self.Vct.vectorizer.fit([concl])
-            data_mtrx = self.Vct.create_vectors(data)
-            update_mtrx = (
-                np.append(data_mtrx, np.ones((len(data_mtrx),1)), 1)
-            )
-            return update_mtrx
+            vectorizer.fit([concl])
+            data_mtrx = self.Vct.create_vectors(data, vectorizer)
+            if addition:
+                update_mtrx = (
+                    np.append(
+                        data_mtrx,
+                        np.full(
+                            (len(data_mtrx),1), fill_val
+                            ),
+                        1
+                    )
+                )
+                return update_mtrx
+            else:
+                return data_mtrx    
         options = {
             'act' : inner_func1,
             'concl': inner_func2
@@ -666,17 +691,27 @@ class Constructor():
                                load_dir_name='',
                                save_dir_name='',
                                vector_pop='concl',
+                               vect_model='count',
+                               addition=True,
+                               fill_val=1,
                                par_type='parser1',
                                vocab=None,
                                bigram='join',
                                rep_ngram=False,
-                               rep_ngram_act=False):
+                               rep_ngram_act=False,
+                               add_file_name='',
+                               uniq=False):
         #load concls and set mtrx creation finc
         concls_path = (
             self.dir_struct['Conclusions'].joinpath(concl_dir_name)
         )
         concls = self.RWT.iterate_text_loading(concls_path)
-        mtrx_creator = self.act_and_concl_to_mtrx(vector_pop=vector_pop)
+        mtrx_creator = self.act_and_concl_to_mtrx(
+            vector_pop=vector_pop,
+            vect_model=vect_model,
+            addition=addition,
+            fill_val=fill_val
+        )
         for concl in concls:
             #load acts
             path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
@@ -688,7 +723,12 @@ class Constructor():
                     vocab=vocab
                 )
                 int_bigrs = self.CTP.intersect_2gr(concl, vocab)
-                concl_cleaned = ' '.join(concl_prep+int_bigrs)
+                if uniq:
+                    concl_prep = set(concl_prep)
+                    int_bigrs = set(int_bigrs)
+                    concl_cleaned = ' '.join(concl_prep | int_bigrs)
+                else:
+                    concl_cleaned = ' '.join(concl_prep+int_bigrs)
             ###########
             elif vocab:
                 concl_prep = self.CTP.full_process(
@@ -717,7 +757,11 @@ class Constructor():
                     else:
                         concl_cleaned = ' '.join(concl_gram)
                 elif bigram == 'no':
-                    concl_cleaned = ' '.join(concl_prep)          
+                    if uniq:
+                        concl_prep = set(concl_prep)
+                        concl_cleaned = ' '.join(concl_prep)
+                    else:
+                        concl_cleaned = ' '.join(concl_prep)          
             else:
                 concl_prep = self.CTP.full_process(
                     concl,
@@ -763,22 +807,38 @@ class Constructor():
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
                 ############################
                 if bigram == 'intersection' and vocab:
-                    act = [
-                            self.CTP.remove_stpw_from_list(
+                    if uniq:
+                        act = [
+                            set(self.CTP.remove_stpw_from_list(
                                 par,
                                 vocab
-                            )
-                            +
-                            self.CTP.intersect_2gr(
+                            ))
+                            |
+                            set(self.CTP.intersect_2gr(
                                 par,
                                 vocab,
                                 verbose=False,
                                 par_type='lst'
-                            )
+                            ))
                             for par in act
                         ]
-                    act = [' '.join(par) for par in act]
-                    #writer(act, 'act{}'.format(counter), verbose=False)
+                        act = [' '.join(par) for par in act]
+                    else:
+                        act = [
+                                self.CTP.remove_stpw_from_list(
+                                    par,
+                                    vocab
+                                )
+                                +
+                                self.CTP.intersect_2gr(
+                                    par,
+                                    vocab,
+                                    verbose=False,
+                                    par_type='lst'
+                                )
+                                for par in act
+                            ]
+                        act = [' '.join(par) for par in act]
                 ######################        
                 elif bigram == 'join':
                     if vocab:
@@ -833,14 +893,24 @@ class Constructor():
                             for par in act
                         ]
                 elif bigram == 'no':
-                    act = [
-                            ' '.join(self.CTP.remove_stpw_from_list(
-                                par,
-                                vocab
-                            ))
-                            for par in act
-                        ]
-                #writer(act, 'act{}'.format(str(counter)), verbose=False)
+                    if uniq:
+                        act = [
+                                ' '.join(set(
+                                    self.CTP.remove_stpw_from_list(
+                                    par,
+                                    vocab
+                                )))
+                                for par in act
+                            ]
+                    else:
+                        act = [
+                                ' '.join(self.CTP.remove_stpw_from_list(
+                                    par,
+                                    vocab
+                                ))
+                                for par in act
+                            ]
+                #writer(act, 'act{}'.format(counter), verbose=False)
                 data_mtrx = mtrx_creator(act, concl_cleaned)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 #counter+=1
@@ -871,7 +941,7 @@ class Constructor():
                 dir_name=save_dir_name,
                 header=('Суд','Реквизиты','Косинус', 'Абзац'),
                 zero_string = concl,
-                file_name=FILE_NAMES[name]
+                file_name=FILE_NAMES[name]+add_file_name
             )
             if not auto_mode:
                 breaker = None
