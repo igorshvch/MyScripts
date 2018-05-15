@@ -8,7 +8,7 @@ from time import time, strftime
 from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import Counter, deque
-from nltk.corpus import stopwords
+#from nltk.corpus import stopwords
 #from writer import writer
 
 # Term 'bc' in comments below means 'backward compatibility'
@@ -88,11 +88,6 @@ class ReadWriteTool():
         print('Created directory:')
         print('\t'+str(path))
 
-    def load_text(self, path):
-        with open(path, mode='r', encoding=self.enc) as fle:
-            text = fle.read()
-        return text
-
     def collect_exist_file_paths(self, top_dir, suffix=''):
         holder = []
         def inner_func(top_dir, suffix):
@@ -106,6 +101,11 @@ class ReadWriteTool():
                     holder.append(path_obj)
         inner_func(top_dir, suffix)
         return sorted(holder)
+
+    def load_text(self, path):
+        with open(path, mode='r', encoding=self.enc) as fle:
+            text = fle.read()
+        return text
         
     def iterate_text_loading(self, top_dir):
         '''
@@ -288,12 +288,8 @@ class CustomTextProcessor():
         t0 = time()
         vocab = Counter()
         for act in acts_gen:
-            words = [
-                w
-                for par in act
-                for w in par
-            ]
-            vocab.update(words)
+            for par in act:
+                vocab.update(par)
         t1 = time()
         print('Words were counted in {} seconds'.format(t1-t0))
         return vocab
@@ -468,13 +464,13 @@ class Constructor():
     def div_tok_acts(self,
                      dir_name='',
                      sep_type='sep1',
-                     iden=''):
+                     inden=''):
         path = self.dir_struct['Raw_text'].joinpath(dir_name)
         raw_files = self.RWT.iterate_text_loading(path)
         counter1 = 0
         counter2 = 0
         for fle in raw_files:
-            print(iden+'Starting new file processing!')
+            print(inden+'Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
             divided = self.CTP.court_decisions_separator(
                 cleaned,
@@ -483,7 +479,7 @@ class Constructor():
             tokenized = self.CTP.iterate_tokenization(divided)
             counter2 += len(divided)
             t0=time()
-            print(iden+'\tStarting tokenization and writing')
+            print(inden+'\tStarting tokenization and writing')
             file_paths = deque(self.RWT.create_writing_paths(
                 counter1, counter2,
                 self.dir_struct['Divided_and_tokenized'].joinpath(dir_name),
@@ -496,11 +492,11 @@ class Constructor():
                 )
             counter1 += len(divided)
             print(
-                iden+'\tTokenization and writing '
+                inden+'\tTokenization and writing '
                 +'complete in {} seconds!'.format(time()-t0)
             )
     
-    def create_vocab(self, dir_name='', spec='raw', iden=''):
+    def create_vocab(self, dir_name='', spec='raw', inden=''):
         '''
         Accepted 'spec' args:
         raw, norm1
@@ -517,21 +513,21 @@ class Constructor():
             ),
         }
         t0=time()
-        print(iden+'Starting vocab creation!')
+        print(inden+'Starting vocab creation!')
         all_files = self.RWT.iterate_pickle_loading(options[spec])
         vocab = self.CTP.words_count(all_files)
-        print(iden+'Vocab created in {} seconds!'.format(time()-t0))
+        print(inden+'Vocab created in {} seconds!'.format(time()-t0))
         return vocab
     
     def create_lem_dict(self,
                         vocab,
                         par_type='parser1',
-                        iden=''):
+                        inden=''):
         all_words = list(vocab.keys())
-        print(iden+'Strating normalization!')
+        print(inden+'Strating normalization!')
         t0 = time()
         norm_words = self.CTP.lemmatize(all_words, par_type=par_type)
-        print(iden+'Normalization complete in {} seconds'.format(time()-t0))
+        print(inden+'Normalization complete in {} seconds'.format(time()-t0))
         lem_dict = {
             raw_word:norm_word
             for (raw_word, norm_word)
@@ -576,7 +572,7 @@ class Constructor():
                                 par_type='parser1',
                                 load_dir_name='',
                                 save_dir_name='',
-                                iden=''):
+                                inden=''):
         #load paths and lem gen
         load_path = (
             self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
@@ -598,14 +594,14 @@ class Constructor():
         )))
         #process
         t0 = time()
-        print(iden+'Start normalization and writing')
+        print(inden+'Start normalization and writing')
         for lem_act in lemmed_acts_gen:
             self.RWT.write_pickle(
                 lem_act,
                 writing_paths.popleft()
             )
         print(
-            iden+'Normalization and writing '
+            inden+'Normalization and writing '
             +'complete in {} seconds'.format(time()-t0)
         )
     
@@ -668,11 +664,13 @@ class Constructor():
         base = index_mtrx[0,:]
         holder = []
         for i in range(1,index_mtrx.shape[0],1):
-            holder.append((i, sp_cosine(base, index_mtrx[i,:])))
+            cos = sp_cosine(base, index_mtrx[i,:])
+            cos = cos if not np.isnan(cos) else 1.0
+            holder.append((i, cos))
         if output=='best':
             return sorted(holder, key = lambda x: x[1])[0]
         elif output=='all':
-            return sorted(holder, key = lambda x: x[1])[0]
+            return sorted(holder, key = lambda x: x[1])
         else:
             raise TypeError('Wrong key argument for "output"!')
     
@@ -912,6 +910,7 @@ class Constructor():
                             ]
                 #writer(act, 'act{}'.format(counter), verbose=False)
                 data_mtrx = mtrx_creator(act, concl_cleaned)
+                #writer(data_mtrx, 'act_mtrx{}'.format(counter), verbose=False)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 #counter+=1
                 #if counter%500 == 0:
@@ -994,30 +993,30 @@ class Constructor():
         self.div_tok_acts(
             dir_name=dir_name,
             sep_type=sep_type,
-            iden='\t'
+            inden='\t'
         )
         print('Acts are divided and tokenized')
         print('Creating raw words dictionary')
         vocab_rw = self.create_vocab(
             dir_name=dir_name,
             spec='raw',
-            iden='\t'
+            inden='\t'
         )
         print('Dictionary is created')
         print('Creating mapping')
-        lem_dict = self.create_lem_dict(vocab_rw, iden='\t')
+        lem_dict = self.create_lem_dict(vocab_rw, inden='\t')
         print('Mapping is created')
         print('Starting lemmatization')
         self.lemmatize_and_save_acts(
             lem_dict,
             load_dir_name=dir_name,
             save_dir_name=dir_name,
-            iden='\t')
+            inden='\t')
         print('Creating norm words dictionary')
         vocab_nw = self.create_vocab(
             dir_name=dir_name,
             spec='norm1',
-            iden='\t'
+            inden='\t'
         )
         print('Dictionary is created')
         print('Saving all dictionaries')
