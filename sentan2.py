@@ -8,8 +8,9 @@ from time import time, strftime
 from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import Counter, deque
+from nltk import sent_tokenize
 #from nltk.corpus import stopwords
-#from writer import writer
+from writer import writer
 
 # Term 'bc' in comments below means 'backward compatibility'
 
@@ -277,11 +278,11 @@ class CustomTextProcessor():
             ]
             yield act
     
-    def full_process(self, text, par_type='parser1', vocab=None):
+    def full_process(self, text, par_type='parser1', stop_w=None):
         tokens = self.tokenize(text)
         lemms = self.lemmatize(tokens, par_type=par_type)
-        if vocab:
-            lemms = [w for w in lemms if w not in vocab]
+        if stop_w:
+            lemms = [w for w in lemms if w not in stop_w]
         return lemms
     
     def words_count(self, acts_gen):
@@ -365,7 +366,7 @@ class CustomTextProcessor():
             cleaned_lems = self.full_process(
                 par,
                 par_type='parser1',
-                vocab=stpw
+                stop_w=stpw
             )
         elif par_type == 'lst':
             lems = par
@@ -607,18 +608,18 @@ class Constructor():
     
     def act_and_concl_to_mtrx(self,
                               vector_pop='concl',
-                              vect_model=None,
+                              vector_model=None,
                               addition=True,
                               fill_val=1):
         '''
-        Accepted 'vocab' args:
-        'act', 'concl'
+        Accepted 'vector_pop' args:
+        'act', 'concl', 'mixed'
         Accepted 'vect_model' args:
         'count', 'tfidf'
         '''
-        if vect_model == 'count':
+        if vector_model == 'count':
             vectorizer = self.Vct.C_vectorizer
-        elif vect_model == 'tfidf':
+        elif vector_model == 'tfidf':
             vectorizer = self.Vct.T_vectorizer
         def inner_func1(pars_list, concl):
             data = [concl] + pars_list
@@ -637,7 +638,7 @@ class Constructor():
                 return update_mtrx
             else:
                 return data_mtrx
-        def inner_func2(pars_list, concl):
+        def inner_func2(pars_list, concl, bigrs=None):
             data = [concl] + pars_list
             vectorizer.fit([concl])
             data_mtrx = self.Vct.create_vectors(data, vectorizer)
@@ -653,10 +654,28 @@ class Constructor():
                 )
                 return update_mtrx
             else:
-                return data_mtrx    
+                return data_mtrx 
+        def inner_func3(pars_list, concl, bigrs):
+            data = [concl] + pars_list
+            vectorizer.fit(data+[bigrs])
+            data_mtrx = self.Vct.create_vectors(data, vectorizer)
+            if addition:
+                update_mtrx = (
+                    np.append(
+                        data_mtrx,
+                        np.full(
+                            (len(data_mtrx),1), fill_val
+                            ),
+                        1
+                    )
+                )
+                return update_mtrx
+            else:
+                return data_mtrx   
         options = {
             'act' : inner_func1,
-            'concl': inner_func2
+            'concl': inner_func2,
+            'mixed': inner_func3
         }
         return options[vector_pop]
 
@@ -683,22 +702,46 @@ class Constructor():
                 holder[p.stem] = file.read()
         return holder
     
+    def concl_2gram(self, concl, stop_w=None, reps=False, result=None):
+        concl_prep = self.CTP.full_process(
+            concl,
+            par_type='parser1',
+            stop_w=stop_w
+        )
+        bigrms = self.CTP.create_2grams(concl_prep)
+        if reps:
+            bigrms = self.CTP.extract_repetitive_ngrams(bigrms)
+        if result =='join':
+            return ' '.join(concl_prep+bigrms)
+        elif result =='simple':
+            return  ' '.join(bigrms)
+    
+    def concl_uniq_words(self, concl, stop_w=None):
+        concl_prep = self.CTP.full_process(
+            concl,
+            par_type='parser1',
+            stop_w=stop_w
+        )
+        return ' '.join(set(concl_prep))
+    
     def export_cd_eval_results(self,
                                auto_mode=False,
                                concl_dir_name='',
                                load_dir_name='',
                                save_dir_name='',
                                vector_pop='concl',
-                               vect_model='count',
+                               vector_model='count',
                                addition=True,
                                fill_val=1,
                                par_type='parser1',
-                               vocab=None,
-                               bigram='join',
-                               rep_ngram=False,
+                               stop_w=None,
                                rep_ngram_act=False,
                                add_file_name='',
-                               uniq=False):
+                               intersection=False,
+                               params=None,
+                               old_uniq=False,
+                               old_bigram='join'
+                               ):
         #load concls and set mtrx creation finc
         concls_path = (
             self.dir_struct['Conclusions'].joinpath(concl_dir_name)
@@ -706,7 +749,7 @@ class Constructor():
         concls = self.RWT.iterate_text_loading(concls_path)
         mtrx_creator = self.act_and_concl_to_mtrx(
             vector_pop=vector_pop,
-            vect_model=vect_model,
+            vector_model=vector_model,
             addition=addition,
             fill_val=fill_val
         )
@@ -714,79 +757,76 @@ class Constructor():
             #load acts
             path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
             ############################
-            if bigram == 'intersection' and vocab:
+            if intersection and stop_w:
                 concl_prep = self.CTP.full_process(
                     concl,
                     par_type=par_type,
-                    vocab=vocab
+                    stop_w=stop_w
                 )
-                int_bigrs = self.CTP.intersect_2gr(concl, vocab)
-                if uniq:
+                concl_int_bigrs = self.CTP.intersect_2gr(concl, stop_w)
+                if old_uniq:
                     concl_prep = set(concl_prep)
-                    int_bigrs = set(int_bigrs)
-                    concl_cleaned = ' '.join(concl_prep | int_bigrs)
+                    concl_int_bigrs = set(concl_int_bigrs)
+                    concl_cleaned = ' '.join(concl_prep | concl_int_bigrs)
                 else:
-                    concl_cleaned = ' '.join(concl_prep+int_bigrs)
+                    concl_cleaned = ' '.join(concl_prep+concl_int_bigrs)
             ###########
-            elif vocab:
-                concl_prep = self.CTP.full_process(
-                    concl,
-                    par_type=par_type,
-                    vocab=vocab
-                )
-                if bigram == 'join':
-                    concl_gram = self.CTP.create_2grams(concl_prep)
-                    if rep_ngram:
-                        concl_rep_gram = (
-                            self.CTP.extract_repetitive_ngrams(concl_gram)
+            elif len(params) == 4:
+                options = {
+                    ('W_stpw', 'reps', 'bigrs_join', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=None, reps=True, result='join')
+                    ),
+                    ('WO_stpw', 'reps', 'bigrs_join', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=stop_w, reps=True, result='join')
+                    ),
+                    ('W_stpw', 'NOreps', 'bigrs_join', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=None, reps=False, result='join')    
+                    ),
+                    ('WO_stpw', 'NOreps', 'bigrs_join', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=stop_w, reps=False, result='join')    
+                    ),
+                    ('W_stpw', 'reps', 'bigrs_simple', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=None, reps=True, result='simple')
+                    ),
+                    ('WO_stpw', 'reps', 'bigrs_simple', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=stop_w, reps=True, result='simple')
+                    ),
+                    ('W_stpw', 'NOreps', 'bigrs_simple', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=None, reps=False, result='simple')    
+                    ),
+                    ('WO_stpw', 'NOreps', 'bigrs_simple', 'NOuniq'): (lambda:
+                        self.concl_2gram(concl, stop_w=stop_w, reps=False, result='simple')    
+                    ),
+                    #########
+                    ('W_stpw', 'NOreps', 'NObigrs', 'NOuniq'): (lambda:
+                        ' '.join(
+                            self.CTP.full_process(
+                                concl,
+                                par_type=par_type,
+                                stop_w=None
+                            )
                         )
-                        concl_prep = concl_prep + concl_rep_gram
-                        concl_cleaned = ' '.join(concl_prep)
-                    else:
-                        concl_prep = concl_prep + concl_gram
-                        concl_cleaned = ' '.join(concl_prep)
-                elif bigram == 'simple':
-                    concl_gram = self.CTP.create_2grams(concl_prep)
-                    if rep_ngram:
-                        concl_rep_gram = (
-                            self.CTP.extract_repetitive_ngrams(concl_gram)
+                    ),
+                    ('WO_stpw', 'NOreps', 'NObigrs', 'NOuniq'): (lambda:
+                        ' '.join(
+                            self.CTP.full_process(
+                                concl,
+                                par_type=par_type,
+                                stop_w=stop_w
+                            )
                         )
-                        concl_cleaned = ' '.join(concl_rep_gram)
-                    else:
-                        concl_cleaned = ' '.join(concl_gram)
-                elif bigram == 'no':
-                    if uniq:
-                        concl_prep = set(concl_prep)
-                        concl_cleaned = ' '.join(concl_prep)
-                    else:
-                        concl_cleaned = ' '.join(concl_prep)          
+                    ),
+                    #########
+                    ('W_stpw', 'NOreps', 'NObigrs', 'uniq'): (lambda:
+                        self.concl_uniq_words(concl, stop_w=None)
+                    ),
+                    ('WO_stpw', 'NOreps', 'NObigrs', 'uniq'): (lambda:
+                        self.concl_uniq_words(concl, stop_w=stop_w)
+                    )
+                }
+                concl_cleaned = options[params]()
             else:
-                concl_prep = self.CTP.full_process(
-                    concl,
-                    par_type=par_type,
-                )
-                if bigram == 'join':
-                    concl_gram = self.CTP.create_2grams(concl_prep)
-                    if rep_ngram:
-                        concl_rep_gram = (
-                            self.CTP.extract_repetitive_ngrams(concl_gram)
-                        )
-                        concl_prep = concl_prep + concl_rep_gram
-                        concl_cleaned = ' '.join(concl_prep)
-                    else:
-                        concl_prep = concl_prep + concl_gram
-                        concl_cleaned = ' '.join(concl_prep)
-                elif bigram == 'simple':
-                    concl_gram = self.CTP.create_2grams(concl_prep)
-                    if rep_ngram:
-                        concl_rep_gram = (
-                            self.CTP.extract_repetitive_ngrams(concl_gram)
-                        )
-                        concl_cleaned = ' '.join(concl_rep_gram)
-                    else:
-                        concl_cleaned = ' '.join(concl_gram)
-                elif bigram == 'no':
-                    concl_cleaned = ' '.join(concl_prep)
+                raise TypeError('Wrong params args!')
             #Uncleaned_acts
             uncl_acts = deque(self.RWT.collect_exist_file_paths(
                 self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
@@ -804,17 +844,17 @@ class Constructor():
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
                 ############################
-                if bigram == 'intersection' and vocab:
-                    if uniq:
+                if intersection and stop_w:
+                    if old_uniq:
                         act = [
                             set(self.CTP.remove_stpw_from_list(
                                 par,
-                                vocab
+                                stop_w
                             ))
                             |
                             set(self.CTP.intersect_2gr(
                                 par,
-                                vocab,
+                                stop_w,
                                 verbose=False,
                                 par_type='lst'
                             ))
@@ -825,12 +865,12 @@ class Constructor():
                         act = [
                                 self.CTP.remove_stpw_from_list(
                                     par,
-                                    vocab
+                                    stop_w
                                 )
                                 +
                                 self.CTP.intersect_2gr(
                                     par,
-                                    vocab,
+                                    stop_w,
                                     verbose=False,
                                     par_type='lst'
                                 )
@@ -838,12 +878,12 @@ class Constructor():
                             ]
                         act = [' '.join(par) for par in act]
                 ######################        
-                elif bigram == 'join':
-                    if vocab:
+                elif old_bigram == 'join':
+                    if stop_w:
                         act = [
                             self.CTP.remove_stpw_from_list(
                                 par,
-                                vocab
+                                stop_w
                             )
                             for par in act
                         ]
@@ -866,12 +906,12 @@ class Constructor():
                             )
                             for par_lst in act
                         ]
-                elif bigram == 'simple':
-                    if vocab:
+                elif old_bigram == 'simple':
+                    if stop_w:
                         act = [
                             self.CTP.remove_stpw_from_list(
                                 par,
-                                vocab
+                                stop_w
                             )
                             for par in act
                         ]
@@ -890,13 +930,13 @@ class Constructor():
                             ' '.join(self.CTP.create_2grams(par))
                             for par in act
                         ]
-                elif bigram == 'no':
-                    if uniq:
+                elif old_bigram == 'no':
+                    if old_uniq:
                         act = [
                                 ' '.join(set(
                                     self.CTP.remove_stpw_from_list(
                                     par,
-                                    vocab
+                                    stop_w
                                 )))
                                 for par in act
                             ]
@@ -904,12 +944,16 @@ class Constructor():
                         act = [
                                 ' '.join(self.CTP.remove_stpw_from_list(
                                     par,
-                                    vocab
+                                    stop_w
                                 ))
                                 for par in act
                             ]
                 #writer(act, 'act{}'.format(counter), verbose=False)
-                data_mtrx = mtrx_creator(act, concl_cleaned)
+                if vector_pop=='mixed':
+                    bigrs = ' '.join(concl_int_bigrs)
+                    data_mtrx = mtrx_creator(act, concl_cleaned, bigrs)
+                else:
+                    data_mtrx = mtrx_creator(act, concl_cleaned)
                 #writer(data_mtrx, 'act_mtrx{}'.format(counter), verbose=False)
                 par_index, cos = self.eval_cos_dist(data_mtrx)
                 #counter+=1
@@ -1141,3 +1185,35 @@ class Constructor():
             'Collecting bigrams and writing '+
             'complete in {} seconds'.format(time()-t0)
         )
+    
+    def special_raw_text_clean(self, load_dir_name):
+        path = self.dir_struct['Raw_text'].joinpath(load_dir_name)
+        raw_files = self.RWT.iterate_text_loading(path)
+        holder=[]
+        for fle in raw_files:
+            print('Starting new file processing!')
+            cleaned = self.CTP.court_decisions_cleaner(fle)
+            divided = self.CTP.court_decisions_separator(
+                cleaned,
+                sep_type='sep1'
+            )
+            t0=time()
+            for act in divided:
+                act = act.split('\n')
+                act = [p for p in act if p]
+                for par in act:
+                    sentences = sent_tokenize(par)
+                    holder.extend(sentences)
+            print(len(holder))
+            print('Acts were divided in {} seconds'.format(time()-t0))
+        print('Start counting!')
+        holder2=[]
+        t0=time()
+        while holder:
+            sent = holder.pop()
+            lngth = len(sent)
+            holder2.append((sent, lngth))
+        print(len(holder2))
+        print('Lengths were counted in {} seconds'.format(time()-t0))
+        return holder2
+
