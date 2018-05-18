@@ -1,0 +1,619 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="qrichtext" content="1" /><style type="text/css">
+p, li { white-space: pre-wrap; }
+</style></head><body style=" font-family:'Consolas'; font-size:10pt; font-weight:400; font-style:normal;">
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Jupyter QtConsole 4.3.1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Python 3.6.4 |Anaconda custom (32-bit)| (default, Jan 16 2018, 10:21:59) [MSC v.1900 32 bit (Intel)]</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Type 'copyright', 'credits' or 'license' for more information</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">IPython 6.2.1 -- An enhanced Interactive Python. Type '?' for help.</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">1</span><span style=" color:#000080;">]:</span> </p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">1</span><span style=" color:#000080;">]:</span> import math as M</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">2</span><span style=" color:#000080;">]:</span> def f(x):</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">   ...:</span>     return M.sin(x / 5) * M.exp(x / 10) + 5 * M.exp(-x / 2)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">   ...:</span> </p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">3</span><span style=" color:#000080;">]:</span> from matplotlib import pyplot as plt</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">4</span><span style=" color:#000080;">]:</span> def sh(x, y):</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">   ...:</span>     plt.plot(x, y)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">   ...:</span>     plt.show()</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">   ...:</span>     </p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">5</span><span style=" color:#000080;">]:</span> x = [i for i in range(1,31,1)]</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">6</span><span style=" color:#000080;">]:</span> y = [f(i) for i in x]</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">7</span><span style=" color:#000080;">]:</span> sh(x, y)</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><img src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAXwAAAD8CAYAAAB0IB+mAAAACXBIWXMAAAsS
+AAALEgHS3X78AAAAO3pUWHRTb2Z0d2FyZQAACJnLTSwpyMkvyclMUihLLSrO
+zM9TMNIz1DPSUcgoKSmw0tfPhSvQyy9K1wcApwMQ8Tj1nCgAACAASURBVHic
+7d13fFX1/cfx1yd7J0ASVoCEvVGJqKCV4t5V62q1traltcPRalurtbY/rXVU
+O6yttLW1lha1FUcdiCIOBDEsCQRCGGEnIQGy9/f3Ry4WMchI7j13vJ+Px32Y
+nHuS7+d4Hrzvyfd8z/drzjlERCT8RXldgIiIBIYCX0QkQijwRUQihAJfRCRC
+KPBFRCKEAl9EJEIEJPDNLNrMlpnZfwPRnoiIfFKgrvBvBIoC1JaIiHTC74Fv
+ZjnAecCf/d2WiIgcXEwA2vg18AMgtbM3zWw6MB0gOTl54siRIwNQkohI+Fiy
+ZMku51zWofbza+Cb2flAuXNuiZlN7Wwf59wMYAZAfn6+Kygo8GdJIiJhx8xK
+D2c/f3fpTAEuNLNNwCxgmpn9w89tiohIJ/wa+M6525xzOc65XOBKYJ5z7mp/
+tikiIp3TOHwRkQgRiJu2ADjn5gPzA9WeiIh8nK7wRUQihAJfRCRCKPBFRCJE
+WAR+XVMrd72wir0NLV6XIiIStMIi8NfsrOYfi0r51swltLS1e12OiEhQCovA
+nzioJ/deMo4FJZXcMbsQLcwuIvJJARuW6W+X5Q9gc1U9v5tXQm5mMtdPHeJ1
+SSIiQSVsAh/ge2cMZ1NlPfe9uoaBPZM4b3xfr0sSEQkaYdGls4+Z8cDnxzNx
+UA9ufno5Szfv9rokEZGgEVaBD5AQG82MaybSNz2Brz9RwJaqeq9LEhEJCmEX
++AC9UuJ5/MvH09ru+PJfF7O3XsM1RUTCMvABhmSl8Ng1E9lcVc/1M5fQ3Krh
+miIS2cI28AFOHNyLX14ynvfWV3LHcys1XFNEIlpYjdLpzKUTcyitque3b6xj
+UK9kvv3ZoV6XFBLqmlrZXd/M3oYW9ta3dPy3oYU9Df/7et92gPSkWDISY8lI
+iiUjMY70xNj9tsWRkRRLemIsCbHRHh+ZSOQK+8AHuPn0YZRW1vHAnLUM7JnE
+BRP6eV1S0KhubGFdWQ3rymopLqtlXXkNxWU1lFU3HfRnYqKMjKRY0hI7Qhxg
++94G9tZ3fCC0tXf+l5QZjOqTxqS8nkzK68nxuT3JSo33y3GJyCdFROCbGfd/
+fjzb9zTw/WdW0Cc9geNze3pdVkC1tLWzZkcNq3fspbislmJfyO+sbvxon4TY
+KIZmpzBlSCZDslPITPFdqfuu2PddpSfFRWNmnbbjnKO2qZU9+/9VUN/CnoZm
+yvY2smTzbmZ9sJm/vbcJgMFZyZyw3wdATo+kQPzvEIlIFkz92v5exLyqrplL
+Hl3Alt0NXDVpADeeNjxsrzCr6ppZWrqbpZt3s6R0Nx9u3UtDSxvwv2Aflp3K
+sN4pDM9OZXjvVHJ6JBIV1XmQd6fm1nYKt+9l8cYqFm+s4oNNVdQ0tgLQPyOR
+SXk9OW1UNmeN6UNsdFjfZhLpFma2xDmXf8j9/Bn4ZjYA+DvQB2gHZjjnfnOw
+/f0d+ACVtU385o11/PP9zcTFRPH1Uwbz9c8MJiU+dP/YaWt3rCuvYUnpbpaW
+7mHp5t1s3FUHdHS/jO6XxnEDezBxUA/G9U9nQM8kogMQ7Ierrd2xdmcNizdW
+snhTx4fArtpm+qUncO3kXK6cNPCjriMR+aRgCfy+QF/n3FIzSwWWAJ9zzq3u
+bP9ABP4+G3fV8cCcNby8cieZKXHceNowrpw0MCSuKBua21i+ZQ8Fm6r4oHQ3
+y0p3U9PUcYXcKzmOY33hftzADMbnZJAYF1o3StvaHfPWlPOXdzewaEMVSXHR
+XJ4/gK9MyWVQr2SvyxMJOkER+J9ozOx54BHn3NzO3g9k4O+zbPNu7n1lDYs3
+VpGXmcwPzhrB2WP7HLSP2guVtU0UlO7uCPhNuynctpdW343REb1TmZjbg4m+
+kB/UKymoau+qwm17efzdjbz44XZa2x1njOrN104ZzPG5PcLqOEW6IugC38xy
+gbeBsc656s728SLwoeNG4xtF5dz36hrWlddy7MAMbjtnFJPyAn9jt6G5jbVl
+NRTtqGb55j18UFrFhoqO7pm4mCgm5KSTn9uT43N7cNzAHmQkxQW8Ri+UVTfy
+5MJS/vF+KXvqWxjXP52vnpzHeeP7hsRfZSL+FFSBb2YpwFvAPc65Zw94bzow
+HWDgwIETS0tL/V7PwbS2tfOfpVt5aG4xZdVNTBuZzWeGZTKsdyrDslPISo3v
+1qvK8ppGinbUsHp7Nat3VFO0o5oNFbXsG9WYkRRL/qAeHwX82P7pxMeEVvdM
+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
+QmCC
+" /></p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">8</span><span style=" color:#000080;">]:</span> from scipy.optimise import minimize</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">---------------------------------------------------------------------------</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">ModuleNotFoundError</span>                       Traceback (most recent call last)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">&lt;ipython-input-8-f663afecdb78&gt;</span> in <span style=" color:#4682b4;">&lt;module&gt;</span><span style=" color:#00008b;">()</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">----&gt; 1</span><span style=" color:#a52a2a;"> </span><span style=" color:#006400;">from</span> scipy<span style=" color:#a52a2a;">.</span>optimise <span style=" color:#006400;">import</span> minimize</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">ModuleNotFoundError</span>: No module named 'scipy.optimise'</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">9</span><span style=" color:#000080;">]:</span> from scipy.optimize import minimize</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">10</span><span style=" color:#000080;">]:</span> minimize(f, x0=2, method='BFGS</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#4682b4;">  File </span><span style=" color:#006400;">&quot;&lt;ipython-input-10-067f42eb6a96&gt;&quot;</span><span style=" color:#4682b4;">, line </span><span style=" color:#006400;">1</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#a52a2a;">    minimize(f, x0=2, method='BFGS</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000000;">                                  ^</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">SyntaxError:</span> EOL while scanning string literal</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">11</span><span style=" color:#000080;">]:</span> minimize(f, x0=2, method='BFGS')</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">11</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      fun: 1.7452682903449388</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> hess_inv: array([[5.98752437]])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      jac: array([-2.07126141e-06])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nfev: 21</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      nit: 6</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     njev: 7</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">   status: 0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">        x: array([4.13627618])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">12</span><span style=" color:#000080;">]:</span> res1 = minimize(f, x0=2, method='BFGS')</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">13</span><span style=" color:#000080;">]:</span> f(res1.x)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">13</span><span style=" color:#8b0000;">]:</span> 1.7452682903449388</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">14</span><span style=" color:#000080;">]:</span> res.y</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">---------------------------------------------------------------------------</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">NameError</span>                                 Traceback (most recent call last)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">&lt;ipython-input-14-c023ca9c8577&gt;</span> in <span style=" color:#4682b4;">&lt;module&gt;</span><span style=" color:#00008b;">()</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">----&gt; 1</span><span style=" color:#a52a2a;"> </span>res<span style=" color:#a52a2a;">.</span>y</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">NameError</span>: name 'res' is not defined</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">15</span><span style=" color:#000080;">]:</span> res1.y</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">---------------------------------------------------------------------------</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">KeyError</span>                                  Traceback (most recent call last)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">~\Continuum\anaconda3\lib\site-packages\scipy\optimize\optimize.py</span> in <span style=" color:#4682b4;">__getattr__</span><span style=" color:#00008b;">(self, name)</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    113</span>         <span style=" color:#006400;">try</span><span style=" color:#a52a2a;">:</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">--&gt; 114</span><span style=" color:#a52a2a;">             </span><span style=" color:#006400;">return</span> self<span style=" color:#a52a2a;">[</span>name<span style=" color:#a52a2a;">]</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    115</span>         <span style=" color:#006400;">except</span> KeyError<span style=" color:#a52a2a;">:</span></p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">KeyError</span>: 'y'</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">During handling of the above exception, another exception occurred:</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">AttributeError</span>                            Traceback (most recent call last)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">&lt;ipython-input-15-58e7583636f8&gt;</span> in <span style=" color:#4682b4;">&lt;module&gt;</span><span style=" color:#00008b;">()</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">----&gt; 1</span><span style=" color:#a52a2a;"> </span>res1<span style=" color:#a52a2a;">.</span>y</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">~\Continuum\anaconda3\lib\site-packages\scipy\optimize\optimize.py</span> in <span style=" color:#4682b4;">__getattr__</span><span style=" color:#00008b;">(self, name)</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    114</span>             <span style=" color:#006400;">return</span> self<span style=" color:#a52a2a;">[</span>name<span style=" color:#a52a2a;">]</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    115</span>         <span style=" color:#006400;">except</span> KeyError<span style=" color:#a52a2a;">:</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">--&gt; 116</span><span style=" color:#a52a2a;">             </span><span style=" color:#006400;">raise</span> AttributeError<span style=" color:#a52a2a;">(</span>name<span style=" color:#a52a2a;">)</span></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    117</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#006400;">    118</span>     __setattr__ <span style=" color:#a52a2a;">=</span> dict<span style=" color:#a52a2a;">.</span>__setitem__</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">AttributeError</span>: y</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">16</span><span style=" color:#000080;">]:</span> res2 = minimize(f, x0=30, method='BFGS')</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">17</span><span style=" color:#000080;">]:</span> res2.fun</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">17</span><span style=" color:#8b0000;">]:</span> -11.898894665981285</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">18</span><span style=" color:#000080;">]:</span> f(res2.x)</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">18</span><span style=" color:#8b0000;">]:</span> -11.898894665981285</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">19</span><span style=" color:#000080;">]:</span> from scipy.optimize import differential_evolution as difev</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">20</span><span style=" color:#000080;">]:</span> res3 = difev(f, bounds=[(1,30)])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">21</span><span style=" color:#000080;">]:</span> res3</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">21</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     fun: -11.898894665980253</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     jac: array([1.24344979e-06])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">    nfev: 96</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nit: 5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">       x: array([25.88019493])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">22</span><span style=" color:#000080;">]:</span> res2</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">22</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      fun: -11.898894665981285</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> hess_inv: array([[1.67932484]])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      jac: array([2.38418579e-07])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nfev: 21</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      nit: 6</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     njev: 7</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">   status: 0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">        x: array([25.88019339])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">23</span><span style=" color:#000080;">]:</span> res3</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">23</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     fun: -11.898894665980253</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     jac: array([1.24344979e-06])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">    nfev: 96</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nit: 5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">       x: array([25.88019493])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">24</span><span style=" color:#000080;">]:</span> def h(x):</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">    ...:</span>     return int(f(x))</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">    ...:</span> </p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">25</span><span style=" color:#000080;">]:</span> y2 = [h(i) for i in x]</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">26</span><span style=" color:#000080;">]:</span> sh(x, y2)</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><img src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAXwAAAD8CAYAAAB0IB+mAAAACXBIWXMAAAsS
+AAALEgHS3X78AAAAO3pUWHRTb2Z0d2FyZQAACJnLTSwpyMkvyclMUihLLSrO
+zM9TMNIz1DPSUcgoKSmw0tfPhSvQyy9K1wcApwMQ8Tj1nCgAACAASURBVHic
+7d15fFX1nf/x1yc7kBAChC0h7KsBkhAVt3HDVq0VFZSl7XRmOqXtDwS1tmpt
+tepoHbcWi22HLr9pfz8Bl4CoVetS1yoo2YCwE7YkLCEsYcv+nT+I86A0gWBy
+7rnL+/l43IfJzc39vo9H3l4+99xzzDmHiIiEvyi/A4iISGCo8EVEIoQKX0Qk
+QqjwRUQihApfRCRCqPBFRCKECl9EJEKo8EVEIoQKX0QkQsT4HeBkPXv2dAMH
+DvQ7hohISMnPz9/nnEs90+OCqvAHDhzIypUr/Y4hIhJSzGx7Wx6nkY6ISIRQ
+4YuIRAgVvohIhFDhi4hECBW+iEiEUOGLiEQIFb6ISIQIi8LfU13DA6+UUNfQ
+5HcUEZGgFRaFX7D9AP/3b9t44s0NfkcREQlaYVH414zpy9cnZLDgg1L+un6P
+33FERIJSWBQ+wI+/MppRfbvy/eeL2XXouN9xRESCTtgUfkJsNM/MyKa2oYk5
+iwppaNQ8X0TkZGFT+ACDUxN55MYxfLbtAL94e5PfcUREgkpYFT7ADdlp3JKb
+zjPvbebDTZV+xxERCRphV/gAD1yfydDURG5/roi91TV+xxERCQphWfid4qJ5
+5ms5HKlt4Lbnimhscn5HEhHxXVgWPsDw3kk8eH0mH2+p4pl3N/sdR0TEd2Fb
++AA356ZzY3Yav3h7I8tLq/yOIyLiq7AufDPjoRsyGdijC3MWFVJ1pNbvSCIi
+vvG08M2sv5m9a2brzKzEzOZ6uV5LEuNjmD8jh4PH67nj+WKaNM8XkQjl9Sv8
+BuD7zrlRwARglpmN9njNfzC6X1fuu24072+s5L8+KA308iIiQSHGyyd3zu0C
+djV/fdjM1gFpwFov123J187P4JMtVTzx5gbOG5TC+AHdAx3BEzX1jfylZDc1
+9Y1+R+kwhnHpiFR6d03wO4pIWDHnAjPiMLOBwAdApnOu+qT7ZwIzATIyMsZv
+377dswzVNfVc9/RHNDQ28drcS+jWOc6ztQLBOcecxUW8Ulzhd5QON7BHZ16d
+cwmJ8Z6+JhEJC2aW75zLPePjAlH4ZpYIvA887Jxb0trjcnNz3cqVKz3Nsqrs
+IJN//TGXDu/Fb/95PGbm6XpeWvzpDu5espq5Vw5j6rn9/Y7TYdbvrubf/7iS
+68b2Y960rJDeRyKB0NbC9/zlk5nFAnnAs6cr+0AZm96Ne64ZxYOvruUPf9vG
+ty4e5HekL2T97mruf7mES4b1ZO6Vw4iKCp9S7NetE7dPHM6Tb23kwiE9mHZe
+ht+RRMKC10fpGPB7YJ1z7ikv1zob/3rRQK4a3ZtHX19H8c6Dfsc5a8fqGpj1
+bAFdO8Xy1C1ZYVX2n/s/lw/l4qE9uf/lEjbsPux3HJGw4PVROhcB3wCuMLOi
+5tu1Hq95RmbG41PG0ispgdmLCqiuqfc70lm5b1kJpfuOMm9qFqlJ8X7H8UR0
+lPHU1HEkJcQya2EBx+oa/I4kEvI8LXzn3EfOOXPOjXXOZTXfXvNyzbbq1jmO
+p6dnU3GwhrvzVhGoN6/bKy+/jBfzy7j1imFcOLSn33E81SspgXnTsthSeYT7
+l5X4HUck5IX1J23PZPyAFH7w5RG8tno3z67Y4XecM9q89wg/WbaG8wd1Z+6V
+w/yOExAXDe3JrZcP5YX8MpYUlPkdRySkRXThA8y8ZDCXjUjlwVfXUlJxyO84
+raqpb2T2wgISYqN5eno20WE4t2/NnCuHcd6g7vz4pTVs3nvE7zgiISviCz8q
+ynjy5nGkdI7l1oWFHKkNzlnxg6+uZf3uwzx1y7iI+0BSTHQUT0/LJiE2mtkL
+C8LqQ2YigRTxhQ/QIzGeedOy2VZ1lB8vXR108/xXiitYuGIH3710CJeN6OV3
+HF/0SU7gyVvGsX73YR56NeAf1BYJCyr8ZhMG9+C2icN5qaiCF/KDZ1a8veoo
+9yxZzfgBKXz/S8P9juOry0f04juXDubZFTt4dVX4fbpYxGsq/JPMunwoFw3t
+wX3L1rBxj//Hftc2NDJrYQHRUcbT07OJjdbuuvNLI8jJ6MbdeavZXnXU7zgi
+IUUNcpLoKOPnU7NIjI9h1rMFHK/zd1b8s9fWs6a8miduHkdat06+ZgkWsdFR
+//um9eyFhdQ2aJ4v0lY6M9UpeiUl8Iup2XzjDyu4e8kqbh7vzzlqNu89zH9/
+vI1/u2gQV43u7UuGYJWe0pnHp4xl5v/L576XSvjquH5n/B0zyMlIoVNcdAAS
+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
+QmCC
+" /></p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">27</span><span style=" color:#000080;">]:</span> res4 = minimize(h, x0=30, method='BFGS')</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">28</span><span style=" color:#000080;">]:</span> res4</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">28</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      fun: -5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> hess_inv: array([[1]])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      jac: array([0.])</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nfev: 3</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">      nit: 0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     njev: 1</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">   status: 0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">  success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">        x: array([30.])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">29</span><span style=" color:#000080;">]:</span> res5 = difev(h, bounds=[(1,30)])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">30</span><span style=" color:#000080;">]:</span> res5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">30</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     fun: -11.0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">    nfev: 122</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nit: 7</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">       x: array([24.62479059])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">30</span><span style=" color:#000080;">]:</span> </p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">31</span><span style=" color:#000080;">]:</span> res5 = difev(h, bounds=[(1,30)])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">32</span><span style=" color:#000080;">]:</span> res5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#8b0000;">Out[</span><span style=" font-weight:600; color:#8b0000;">32</span><span style=" color:#8b0000;">]:</span> </p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     fun: -11.0</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> message: 'Optimization terminated successfully.'</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">    nfev: 92</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">     nit: 5</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"> success: True</p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">       x: array([27.16341058])</p>
+<p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" color:#000080;">In [</span><span style=" font-weight:600; color:#000080;">33</span><span style=" color:#000080;">]:</span> </p></body></html>

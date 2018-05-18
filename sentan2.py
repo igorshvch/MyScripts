@@ -740,7 +740,8 @@ class Constructor():
                                intersection=False,
                                params=None,
                                old_uniq=False,
-                               old_bigram='join'
+                               old_bigram='join',
+                               par_len=None
                                ):
         #load concls and set mtrx creation finc
         concls_path = (
@@ -845,6 +846,14 @@ class Constructor():
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
                 ############################
                 if intersection and stop_w:
+                    if par_len:
+                        act2 = []
+                        for par in act:
+                            if len(''.join(par)) > par_len:
+                                act2.append(par)
+                            else:
+                                act2.append('')
+                        act = act2
                     if old_uniq:
                         act = [
                             set(self.CTP.remove_stpw_from_list(
@@ -879,6 +888,14 @@ class Constructor():
                         act = [' '.join(par) for par in act]
                 ######################        
                 elif old_bigram == 'join':
+                    if par_len:
+                        act2 = []
+                        for par in act:
+                            if len(''.join(par)) > par_len:
+                                act2.append(par)
+                            else:
+                                act2.append('')
+                        act = act2
                     if stop_w:
                         act = [
                             self.CTP.remove_stpw_from_list(
@@ -907,6 +924,14 @@ class Constructor():
                             for par_lst in act
                         ]
                 elif old_bigram == 'simple':
+                    if par_len:
+                        act2 = []
+                        for par in act:
+                            if len(''.join(par)) > par_len:
+                                act2.append(par)
+                            else:
+                                act2.append('')
+                        act = act2
                     if stop_w:
                         act = [
                             self.CTP.remove_stpw_from_list(
@@ -931,6 +956,14 @@ class Constructor():
                             for par in act
                         ]
                 elif old_bigram == 'no':
+                    if par_len:
+                        act2 = []
+                        for par in act:
+                            if len(''.join(par)) > par_len:
+                                act2.append(par)
+                            else:
+                                act2.append('')
+                        act = act2
                     if old_uniq:
                         act = [
                                 ' '.join(set(
@@ -1186,7 +1219,7 @@ class Constructor():
             'complete in {} seconds'.format(time()-t0)
         )
     
-    def special_raw_text_clean(self, load_dir_name):
+    def special_sentence_count(self, load_dir_name):
         path = self.dir_struct['Raw_text'].joinpath(load_dir_name)
         raw_files = self.RWT.iterate_text_loading(path)
         holder=[]
@@ -1216,4 +1249,107 @@ class Constructor():
         print(len(holder2))
         print('Lengths were counted in {} seconds'.format(time()-t0))
         return holder2
+    
+    def special_raw_pars_count(self, load_dir_name):
+        path = self.dir_struct['Raw_text'].joinpath(load_dir_name)
+        raw_files = self.RWT.iterate_text_loading(path)
+        holder=[]
+        for fle in raw_files:
+            print('Starting new file processing!')
+            cleaned = self.CTP.court_decisions_cleaner(fle)
+            divided = self.CTP.court_decisions_separator(
+                cleaned,
+                sep_type='sep1'
+            )
+            t0=time()
+            for act in divided:
+                act = act.split('\n')
+                act = [p for p in act if p]
+                holder.extend(act)
+            print(len(holder))
+            print('Acts were divided in {} seconds'.format(time()-t0))
+        print('Start counting!')
+        holder2=[]
+        t0=time()
+        while holder:
+            par = holder.pop()
+            lngth = len(par)
+            holder2.append((par, lngth))
+        print(len(holder2))
+        print('Lengths were counted in {} seconds'.format(time()-t0))
+        return holder2
+    
+    def special_cleaned_pars_count(self, load_dir_name):
+        path = self.dir_struct['Normalized_by_parser1'].joinpath(load_dir_name)
+        files = self.RWT.iterate_pickle_loading(path)
+        t0=time()
+        holder=[]
+        for fle in files:
+            holder.extend(fle)
+        print(len(holder))
+        print('Pars extracted in {} seconds'.format(time()-t0))
+        t0=time()
+        holder2 = []
+        while holder:
+            par = holder.pop()
+            words_count = len(par)
+            total_len = len(''.join(par))
+            holder2.append((par,total_len, words_count))
+        print(len(holder2))
+        print('Estimation ended in {} seconds'.format(time()-t0))
+        writer(sorted(holder2, key=lambda x: x[0]), 'pras_len_count_ALPH1')
+        writer(sorted(holder2, key=lambda x: x[1], reverse=True), 'pras_LEN_count_alph2')
+        writer(sorted(holder2, key=lambda x: x[2], reverse=True), 'pras_len_COUNT_alph3')
+        return holder2
+    
+    def special_get_ind(self, x, word, mode='e', order='forward'):
+        if order == 'forward':
+            for i in range(len(x)):
+                if mode == 'i':
+                    if word in x[i]:
+                        return i
+                elif mode == 'e':
+                    if word == x[i][0]:
+                        return i
+        elif order == 'backward':
+            for i in range(1, len(x)+1):
+                if mode == 'i':
+                    if word in x[-i]:
+                        return i
+                elif mode == 'e':
+                    if word == x[-i][0]:
+                        return i
+    
+    def special_locate_borders(self, load_dir_name, top, bottom):
+        holder = []
+        cn = Counter()
+        path_to_acts = (
+            self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+        )
+        acts = self.RWT.iterate_pickle_loading(path_to_acts)
+        counter = 0
+        for act in acts:
+            try:
+                t = self.special_get_ind(
+                    act,
+                    top,
+                    mode='e',
+                    order='forward')
+                b = self.special_get_ind(
+                    act,
+                    bottom,
+                    mode='e',
+                    order='backward')
+                if not b:
+                    b == None
+                b = '-{}'.format(b)
+            except:
+                print (counter)
+                writer(act, 'act{}'.format(counter), mode='w')
+                #return None, None
+            holder.append((t, b))
+            cn.update([t, b])
+            counter+=1
+        return holder, cn
 
+        
