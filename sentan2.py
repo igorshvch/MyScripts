@@ -452,6 +452,9 @@ class Constructor():
                 ),
                 'Results': (
                     pthl.Path().home().joinpath('TextProcessing', 'Results')
+                ),
+                'Divided_acts': (
+                    pthl.Path().home().joinpath('TextProcessing', 'DivActs')
                 )
             }
         print('Constructor class created')
@@ -741,7 +744,8 @@ class Constructor():
                                params=None,
                                old_uniq=False,
                                old_bigram='join',
-                               par_len=None
+                               par_len=None,
+                               act_borders=None
                                ):
         #load concls and set mtrx creation finc
         concls_path = (
@@ -843,6 +847,12 @@ class Constructor():
             #counter = 0
             for act in acts:
                 uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
+                if act_borders:
+                    act_court = ' '.join(uncl_act[0])
+                    act_name = ' '.join(uncl_act[2])
+                    uncl_act = uncl_act[act_borders[0]:act_borders[1]]
+                    act = act[act_borders[0]:act_borders[1]]
+                    #writer([len(uncl_act)], 'unclean_acts_len', mode='a', verbose=False)
                 uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
                 ############################
                 if intersection and stop_w:
@@ -992,12 +1002,20 @@ class Constructor():
                 #counter+=1
                 #if counter%500 == 0:
                     #print(counter)
-                holder.append(
-                    [uncl_act[0],
-                    uncl_act[2],
-                    cos,
-                    uncl_act[par_index-1]] #act[par_index-1]]
-                )
+                if act_borders:
+                    holder.append(
+                        [act_court,
+                        act_name,
+                        cos,
+                        uncl_act[par_index-1]] #act[par_index-1]]
+                    )
+                else:
+                    holder.append(
+                        [uncl_act[0],
+                        uncl_act[2],
+                        cos,
+                        uncl_act[par_index-1]] #act[par_index-1]]
+                    )
             t1 = time()
             print(
                 'Acts were processed!',
@@ -1335,21 +1353,60 @@ class Constructor():
                     top,
                     mode='e',
                     order='forward')
+            except:
+                print ('No top in {}'.format(counter))
+            try:
                 b = self.special_get_ind(
                     act,
                     bottom,
                     mode='e',
                     order='backward')
-                if not b:
-                    b == None
-                b = '-{}'.format(b)
             except:
-                print (counter)
-                writer(act, 'act{}'.format(counter), mode='w')
-                #return None, None
+                print ('No bottom in {}'.format(counter))
+            if t:
+                t = str(t)
+            else:    
+                t = 'No top'
+            if b:
+                b = '-'+str(b)
+            else:
+                b = 'No bottom'
             holder.append((t, b))
             cn.update([t, b])
             counter+=1
         return holder, cn
 
-        
+    def simple_divide(self,
+                      dir_name='',
+                      sep_type='sep1',
+                      inden=''):
+        path = self.dir_struct['Raw_text'].joinpath(dir_name)
+        raw_files = self.RWT.iterate_text_loading(path)
+        counter1 = 0
+        counter2 = 0
+        for fle in raw_files:
+            print(inden+'Starting new file processing!')
+            cleaned = self.CTP.court_decisions_cleaner(fle)
+            divided = self.CTP.court_decisions_separator(
+                cleaned,
+                sep_type=sep_type
+            )
+            #tokenized = self.CTP.iterate_tokenization(divided)
+            counter2 += len(divided)
+            t0=time()
+            print(inden+'\tStarting writing')
+            file_paths = deque(self.RWT.create_writing_paths(
+                counter1, counter2,
+                self.dir_struct['Divided_acts'].joinpath(dir_name),
+                suffix=''
+            ))
+            for div_act in divided:
+                self.RWT.write_pickle(
+                    div_act,
+                    file_paths.popleft()
+                )
+            counter1 += len(divided)
+            print(
+                inden+'\tWriting '
+                +'complete in {} seconds!'.format(time()-t0)
+            )
