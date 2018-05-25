@@ -1,4 +1,5 @@
 import re
+import math
 import numpy as np
 import pymorphy2
 import csv
@@ -397,7 +398,6 @@ class Vectorization():
         assert len(pars_lst) == result_mtrx.shape[0]
         return result_mtrx
 
-
 class Constructor():
     def __init__(self,
                  enc='cp1251',
@@ -415,7 +415,6 @@ class Constructor():
                 +"'Raw_text' : dir_path,\n"
                 +"'Divided_and_tokenized' : dir_path,\n"
                 +"'Normalized_by_parser1' : dir_path,\n"
-                +"'Normalized_by_parser2' : dir_path,\n"
                 +"'Conclusions' : dir_path,\n"
                 +"'Statistics_and_data' : dir_path,\n"
                 +"'Results' : dir_path}\n"
@@ -432,17 +431,8 @@ class Constructor():
                 'Divided_and_tokenized': (
                     pthl.Path().home().joinpath('TextProcessing','DivToks')
                 ),
-                '2grams':(
-                    pthl.Path().home().joinpath('TextProcessing','Bigrams')
-                ),
-                '3grams':(
-                    pthl.Path().home().joinpath('TextProcessing','Trigrams')
-                ),
                 'Normalized_by_parser1': (
                     pthl.Path().home().joinpath('TextProcessing','Norm1')
-                ),
-                'Normalized_by_parser2': (
-                    pthl.Path().home().joinpath('TextProcessing','Norm2')
                 ),
                 'Conclusions': (
                     pthl.Path().home().joinpath('TextProcessing', 'Conclusions')
@@ -455,6 +445,9 @@ class Constructor():
                 ),
                 'Divided_acts': (
                     pthl.Path().home().joinpath('TextProcessing', 'DivActs')
+                ),
+                'Acts_info': (
+                    pthl.Path().home().joinpath('TextProcessing', 'ActsInfo')
                 )
             }
         print('Constructor class created')

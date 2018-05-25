@@ -37,7 +37,11 @@ def writer(iterable_object,
         with open(inner_path, mode=mode) as file:
             file.write(iterable_object)
     if verbose:
-        print('File \'{}\' was written in mode \'{}\' ')
+        print(
+            'File \'{}\' was written in mode \'{}\''.format(
+                file_name_string, mode
+            )
+        )
 
 def recode(root_path, paths, encodings, verbose=True):
     root_path = pthl.Path(root_path)
