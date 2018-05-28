@@ -877,6 +877,7 @@ class Scorer():
         print('Connection with NormDB established!')
         info_db = shelve.open(str(path_to_info), flag='r')
         print('Connection with InfoDB established!\n')
+        dct_cya={}
         for concl in concls:
             print(concl[:40])
             concl_prep = self.CTP.full_process(concl, stop_w=stop_w)
@@ -929,13 +930,14 @@ class Scorer():
             hl2 = sorted(hl2, key=lambda x: x[2], reverse=True)
             print('Sorting complete in {} seconds'.format(time()-t2))
             print('Starting writing!')                
-            self.DTL.table_to_csv(
-                hl2,
-                dir_name=save_dir_name,
-                header=('Суд','Реквизиты','Оценка', 'Абзац'),
-                zero_string = concl,
-                file_name=FILE_NAMES[concl[:40]]+add_file_name
-            )
+            #self.DTL.table_to_csv(
+            #    hl2,
+            #    dir_name=save_dir_name,
+            #    header=('Суд','Реквизиты','Оценка', 'Абзац'),
+            #    zero_string = concl,
+            #    file_name=FILE_NAMES[concl[:40]]+add_file_name
+            #)
+            dct_cya[FILE_NAMES[concl[:40]]] = hl2
             if not auto_mode:
                 breaker = None
                 while breaker != '1' and breaker != '0':
@@ -947,7 +949,7 @@ class Scorer():
                         print('Вы ввели неподдерживаемое значение!')
                 if breaker == '0':
                     print('Programm was terminated')
-                    break
+                    return dct_cya
                 elif breaker == '1':
                     print('Continue execution')
         dpar_db.close()
@@ -955,6 +957,7 @@ class Scorer():
         info_db.close()
         print('\nDB connections were terminated!\n')
         print('Execution ended')
+        return dct_cya
     
     def process_one_phrase_acts(self,
                                 phrase,
@@ -963,10 +966,6 @@ class Scorer():
                                 save_dir_name=None,
                                 stop_w=None,
                                 add_file_name=''):
-        '''
-        #Acceptable kwargs:
-        #doc_path, top_dir, info_path
-        '''
         ###loading
         self.count_acts(acts_dir)
         path_to_acts = (
@@ -1202,11 +1201,31 @@ class Debugger(DirManager, CustomTextProcessor):
 
         
 class AverScorer(Debugger):
-    def __init__(self, enc='cp1251', par_type='parser1'):
+    def __init__(self, enc='cp1251', par_type='parser1', stop_w=None):
         Debugger.__init__(self, enc=enc, par_type=par_type)
+        self.stpw = stop_w
+    
+    def table_to_csv(self,
+                     table,
+                     file_name='py_table',
+                     dir_name='',
+                     zero_string=None,
+                     header=['Col1', 'Col2']):
+        path = self.dir_struct['Results']
+        path = path.joinpath(dir_name, file_name).with_suffix('.csv')
+        assert len(table[0]) == len(header)
+        self.write_text_to_csv(
+            path,
+            table,
+            zero_string=zero_string,
+            header=header
+        )
+    
+    def tahn(self, x):
+        return (1-math.exp(-2*x))/(1+math.exp(-2*x))
     
     def find_reps_index(self, holder:list):
-        names = [i[0]+' '+i[1] for i in holder]
+        names = [i[0]+'#'+i[1] for i in holder]
         verifier = set()
         holder = []
         counter = 0
@@ -1219,7 +1238,68 @@ class AverScorer(Debugger):
         print(len(holder))
         return names, holder
     
-    def aver_reps_score(self, holder:list):
+    def aver_reps_score(self, holder:list, add_file_name=''):
         names, rep_ind = self.find_reps_index(holder)
         rep_names = self.conv_er_index_to_names(rep_ind, names)
-        pass
+        total_reps = self.find_all_er_pos(rep_names, names)
+        writer(total_reps, 'total_reps'+add_file_name)
+        for i in total_reps:
+            score_box=[]
+            for j in i[1]:
+                score_box.append(holder.pop(j)[2])
+            print(score_box, end=' === ')
+            print(sum(score_box), end=' === ')
+            print(sum(score_box)/len(score_box))
+            aver_score = sum(score_box)/len(score_box)
+            holder.append([*i[0].split('#'), aver_score, '==Замещающий текст=='])
+        return sorted(holder, key=lambda x: x[2])
+    
+    def map_to_one(self, holder):
+        maped_holder = []
+        while holder:
+            item = holder.pop()
+            item[2] = 1 - self.tahn(item[2])
+            maped_holder.append(item)
+        return sorted(maped_holder, key=lambda x: x[2])
+    
+    def addition(self,
+                 holder1,
+                 holder2,
+                 save_dir_name,
+                 zero_string=None,
+                 add_file_name='Проба'):
+        assert len(holder1) == len(holder2)
+        dct_hl1 = {}
+        dct_hl2 = {}
+        total = []
+        for i in holder1:
+            court, req, score, par = i
+            court = ' '.join(self.full_process(court, self.stpw))
+            req = ' '.join(self.full_process(req, self.stpw))
+            key = court+'#'+req
+            dct_hl1[key] = (score, par)
+        for j in holder2:
+            court, req, score, par = j
+            court = ' '.join(self.full_process(court, self.stpw))
+            req = ' '.join(self.full_process(req, self.stpw))
+            key = court+'#'+req
+            dct_hl2[key] = (score, par)
+        assert dct_hl1.keys() == dct_hl2.keys()
+        for k in dct_hl1.keys():
+            sc1, p1 = dct_hl1[key]
+            sc2, p2 = dct_hl2[key]
+            total.append((*k.split('#'), sc1+sc2, p1, p2))
+        total = sorted(total, key=lambda x: x[2])
+        self.table_to_csv(
+                total,
+                dir_name=save_dir_name,
+                header=(
+                    'Суд',
+                    'Реквизиты',
+                    'Общая оценка',
+                    'Абзац (векторы)',
+                    'Абзац (Яндекс)'
+                ),
+                zero_string = zero_string,
+                file_name=add_file_name
+            )

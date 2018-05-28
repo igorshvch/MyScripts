@@ -751,6 +751,7 @@ class Constructor():
             addition=addition,
             fill_val=fill_val
         )
+        dct_holder = {}
         for concl in concls:
             #load acts
             path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
@@ -1022,14 +1023,15 @@ class Constructor():
                 'Time in seconds: {}'.format(t2-t1),
                 sep=''
             )
-            name = concl[:40]
-            self.table_to_csv(
-                holder,
-                dir_name=save_dir_name,
-                header=('Суд','Реквизиты','Косинус', 'Абзац'),
-                zero_string = concl,
-                file_name=FILE_NAMES[name]+add_file_name
-            )
+            #name = concl[:40]
+            #self.table_to_csv(
+            #    holder,
+            #    dir_name=save_dir_name,
+            #    header=('Суд','Реквизиты','Косинус', 'Абзац'),
+            #    zero_string = concl,
+            #    file_name=FILE_NAMES[name]+add_file_name
+            #)
+            dct_holder[FILE_NAMES[concl[:40]]] = holder
             if not auto_mode:
                 breaker = None
                 while breaker != '1' and breaker != '0':
@@ -1041,10 +1043,12 @@ class Constructor():
                         print('Вы ввели неподдерживаемое значение!')
                 if breaker == '0':
                     print('Programm was terminated')
-                    break
+                    return dct_holder
+                    #break
                 elif breaker == '1':
                     print('Continue execution')
         print('Execution ended')
+        return dct_holder
     
     def table_to_csv(self,
                      table,
