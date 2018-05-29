@@ -1256,8 +1256,9 @@ class AverScorer(Debugger):
     
     def map_to_one(self, holder):
         maped_holder = []
-        while holder:
+        while len(holder) != 0:
             item = holder.pop()
+            item = [*item]
             item[2] = 1 - self.tahn(item[2])
             maped_holder.append(item)
         return sorted(maped_holder, key=lambda x: x[2])
@@ -1268,27 +1269,44 @@ class AverScorer(Debugger):
                  save_dir_name,
                  zero_string=None,
                  add_file_name='Проба'):
-        assert len(holder1) == len(holder2)
+        #assert len(holder1) == len(holder2)
         dct_hl1 = {}
         dct_hl2 = {}
         total = []
         for i in holder1:
             court, req, score, par = i
-            court = ' '.join(self.full_process(court, self.stpw))
-            req = ' '.join(self.full_process(req, self.stpw))
+            #court = ' '.join(self.full_process(court, self.stpw))
+            #req = ' '.join(self.full_process(req, self.stpw))
             key = court+'#'+req
-            dct_hl1[key] = (score, par)
+            if key in dct_hl1:
+                if  dct_hl1[key][0] < score:
+                    dct_hl1[key] = (score, par)
+            else:
+                dct_hl1[key] = (score, par)
         for j in holder2:
             court, req, score, par = j
-            court = ' '.join(self.full_process(court, self.stpw))
-            req = ' '.join(self.full_process(req, self.stpw))
+            court = ' '.join(self.tokenize(court))
+            req = ' '.join(self.tokenize(req))
             key = court+'#'+req
             dct_hl2[key] = (score, par)
-        assert dct_hl1.keys() == dct_hl2.keys()
+        dct_hl1.pop('арбитражный суд северо западного округа#от 7 февраля 2017 г по делу n а56 72948 2015')
+        dct_hl2.pop('#постановление')
+        if not dct_hl1.keys() == dct_hl2.keys():
+            hl8 = []
+            for kk in dct_hl1:
+                if kk not in dct_hl2:
+                    hl8.append(kk)
+            hl9 = []
+            for kk in dct_hl2:
+                if kk not in dct_hl1:
+                    hl9.append(kk)
+            writer(sorted(hl8), 'hl8'+add_file_name)
+            writer(sorted(hl9), 'hl9'+add_file_name)
+            return 'Bad keys'
         for k in dct_hl1.keys():
-            sc1, p1 = dct_hl1[key]
-            sc2, p2 = dct_hl2[key]
-            total.append((*k.split('#'), sc1+sc2, p1, p2))
+            sc1, p1 = dct_hl1[k]
+            sc2, p2 = dct_hl2[k]
+            total.append((*k.split('#'), sc1+sc2, p1, p2, 'да' if p1==p2 else 'НЕСОВП'))
         total = sorted(total, key=lambda x: x[2])
         self.table_to_csv(
                 total,
@@ -1298,7 +1316,8 @@ class AverScorer(Debugger):
                     'Реквизиты',
                     'Общая оценка',
                     'Абзац (векторы)',
-                    'Абзац (Яндекс)'
+                    'Абзац (Яндекс)',
+                    'абзацы совпадают?'
                 ),
                 zero_string = zero_string,
                 file_name=add_file_name
