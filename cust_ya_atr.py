@@ -1322,3 +1322,83 @@ class AverScorer(Debugger):
                 zero_string = zero_string,
                 file_name=add_file_name
             )
+    
+    def cut_top(self, db, alg, top=5):
+        holder = []
+        #print(db.keys())
+        for key in db:
+            cut = db[key][:top]
+            holder_cut = []
+            for row in cut:
+                #print('This is row: ', row[:3])
+                #print(type(row[0]), type(row[1]), type(row))
+                row = ['_'.join((row[0], row[1])), row[2], row[3], alg, key]
+                holder_cut.append(row)
+            holder.extend(holder_cut)
+        return holder
+    
+    def summon_reps(self,
+                    top=5,
+                    write=False,
+                    file_name=None,
+                    save_dir_name=None,
+                    **algs):
+        holder = []
+        #print(algs.keys())
+        for key in algs:
+            holder.extend(self.cut_top(algs[key], key, top=top))
+        if not write:
+            return holder
+        elif write:
+            self.table_to_csv(
+               holder,
+               file_name=file_name,
+               dir_name=save_dir_name,
+               zero_string=None,
+               header=['Акт', 'Оценка', 'Абзац', 'Алгоритм', 'Вывод']
+            )
+    
+    def count_oqur(self, holder:list):
+        algs = set([i[3] for i in holder])
+        print(algs)
+        concls = set([i[4] for i in holder])
+        print(concls)
+        names = set([i[0] for i in holder])
+        print(names)
+        dct_nm = {concl:{name:{alg:0 for alg in algs} for name in names} for concl in concls}
+        for concl in concls:
+            for name in names:
+                for alg in algs:
+                    for row in holder:
+                        if (
+                            concl in row and
+                            name in row and
+                            alg in row
+                        ):
+                            dct_nm[concl][name][alg]+=1
+        return dct_nm
+    
+    def extr(self, dct:dict, write=False, file_name='', save_dir_name=''):
+        alg_keys = None
+        holder = []
+        for k in dct:
+            for l in dct[k]:
+                if not alg_keys:
+                    alg_keys = sorted(dct[k][l].keys())
+                    print(alg_keys)
+                vals = [dct[k][l][m] for m in alg_keys]
+                row = [k, *l.split('_'), *vals]
+                row.append(sum(row[3:]))
+                holder.append(row)
+        if not write:
+            return holder
+        elif write:
+            self.table_to_csv(
+               holder,
+               file_name=file_name,
+               dir_name=save_dir_name,
+               zero_string=None,
+               header=['Вывод', 'Суд', 'Реквизиты', *alg_keys, 'Сумма']
+            )
+
+
