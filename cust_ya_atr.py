@@ -50,7 +50,14 @@ FILE_NAMES = {
     'Освобождается ли от НДС предоставление ж': '553',
     'Правомерно ли начисление штрафа, если эк': '590_1',
     'Увеличивается ли налоговая база по НДС н': '551',
-    'Является ли непредставление поставщиком ': '525'
+    'Является ли непредставление поставщиком ': '525',
+    'Должен ли налогоплательщик в целях приме': '44',
+    'Имеет ли налогоплательщик право на вычет': '80',
+    'Можно ли обязать контрагента выставить (': '77_2',
+    'Облагается ли НДС передача (в том числе ': '74',
+    'Правомерно ли применение вычета по НДС п': '6',
+    'Правомерно ли применение вычета по НДС, ': '43',
+    'Являются ли плательщиками НДС физические': '57'
 }
 
 #pymoprhy2 analyzer instance
@@ -78,6 +85,22 @@ class ReadWriteTool():
                     holder.append(path_obj)
         inner_func(top_dir, suffix)
         return sorted(holder)
+    
+    def map_concl_to_num(self, path_holder):
+        dct = {}
+        for p in path_holder:
+            with open(str(p), mode='r') as file:
+                text = file.read()
+            dct[p.stem] = text[:40]
+        return dct
+    
+    def map_num_to_concl(self, path_holder):
+        dct = {}
+        for p in path_holder:
+            with open(str(p), mode='r') as file:
+                text = file.read()
+            dct[text[:40]] = p.stem
+        return dct
 
     def load_text(self, path):
         with open(path, mode='r', encoding=self.enc) as fle:
