@@ -6,6 +6,7 @@ import csv
 import pickle
 import shelve
 import math
+import mysqlite
 #import operator holder = sorted(holder, key=operator.itemgetter(0,1,2))
 import pathlib as pthl
 from time import time
@@ -45,23 +46,28 @@ PATTERN_PASS = (
 )
 
 FILE_NAMES = {
-    'Как определить налоговую базу по НДС при': '541',
-    'Необходимо ли для подтверждения ставки Н': '581',
-    'Освобождается ли от НДС предоставление ж': '553',
-    'Правомерно ли начисление штрафа, если эк': '590_1',
-    'Увеличивается ли налоговая база по НДС н': '551',
-    'Является ли непредставление поставщиком ': '525',
-    'Должен ли налогоплательщик в целях приме': '44',
-    'Имеет ли налогоплательщик право на вычет': '80',
-    'Можно ли обязать контрагента выставить (': '77_2',
-    'Облагается ли НДС передача (в том числе ': '74',
-    'Правомерно ли применение вычета по НДС п': '6',
-    'Правомерно ли применение вычета по НДС, ': '43',
-    'Являются ли плательщиками НДС физические': '57'
+    'Является ли непредставление поставщиком отчетности в налоговый орган признаком получения необоснованной налоговой выгоды по НДС (недобросовестности) (ст. ст. 54.1, 171 НК РФ) Непре': '525',
+    'Как определить налоговую базу по НДС при безвозмездной реализации товаров (работ, услуг) (п. 2 ст. 154 НК РФ)? при определении налоговой базы по НДС при безвозмездной реализации то': '541',
+    'Увеличивается ли налоговая база по НДС на суммы страхового возмещения, получаемые при наступлении страхового случая (пп. 2 п. 1 ст. 162 НК РФ) суммы страхового возмещения, получаем': '551',
+    'Освобождается ли от НДС предоставление жилой площади в общежитиях (пп. 10 п. 2 ст. 149 НК РФ) Предоставление жилой площади в общежитиях облагается НДС что согласно ст. 16 ЖК РФ к ж': '553',
+    'Необходимо ли для подтверждения ставки НДС 10 процентов представлять сертификаты соответствия (п. 2 ст. 164 НК РФ) Непредставление сертификатов не влияет на право применения ставки': '581',
+    'Правомерно ли начисление штрафа, если экспорт подтвердили по истечении 180 календарных дней, но НДС при этом уплачен не был (п. 9 ст. 165 НК РФ) Если экспорт подтвердили по истечен': '590_1',
+    'Правомерно ли применение вычета по НДС, если акт приемки-передачи отсутствует (ст. 54.1, п. 1 ст. 172 НК РФ) Отсутствие акта приема-передачи не влечет отказа в вычете НДС отсутстви': '43',
+    'Должен ли налогоплательщик в целях применения освобождения от уплаты НДС включать в расчет выручки суммы, полученные от операций, не облагаемых НДС (освобождаемых от налогообложени': '44',
+    'Являются ли плательщиками НДС физические лица, осуществляющие незаконную предпринимательскую деятельность без регистрации (п. 2 ст. 11, п. 1 ст. 143 НК РФ) физическое лицо сдавало ': '57',
+    'Правомерно ли применение вычета по НДС при отсутствии товарно-транспортной накладной (п. 1 ст. 172 НК РФ) При отсутствии товарно-транспортной накладной вычет правомерен При отсутст': '6',
+    'Имеет ли налогоплательщик право на вычет, если контрагент (субпоставщик) не перечислил НДС в бюджет (перечислил его не полностью) (ст. 54.1, п. 1 ст. 171 НК РФ) Право на вычет есть': '60',
+    'Облагается ли НДС передача (в том числе безвозмездная) арендатором неотделимых улучшений арендодателю (пп. 1 п. 1 ст. 146 НК РФ) Передача неотделимых улучшений в рамках договора ар': '74',
+    'Можно ли обязать контрагента выставить (исправить) счет-фактуру (п. 3 ст. 168 НК РФ) Контрагента можно обязать выставить (исправить) счет-фактуру (корректировочный счет-фактуру) На': '77',
+    'Можно ли обязать контрагента выставить (исправить) счет-фактуру (п. 3 ст. 168 НК РФ) Контрагента можно обязать выставить (исправить) счет-фактуру (корректировочный счет-фактуру) пр': '77_2',
+    'Имеет ли налогоплательщик право на вычет по НДС, если контрагент не представляет отчетность в налоговые органы (ст. 54.1, п. 1 ст. 171 НК РФ) Налогоплательщик имеет право на вычет,': '80'
 }
 
 #pymoprhy2 analyzer instance
 MORPH = pymorphy2.MorphAnalyzer()
+
+#DB wrapper instance
+sqldb = mysqlite.DataBase()
 
 
 class ReadWriteTool():
@@ -86,20 +92,20 @@ class ReadWriteTool():
         inner_func(top_dir, suffix)
         return sorted(holder)
     
-    def map_concl_to_num(self, path_holder):
+    def map_concl_to_num(self, path_holder, lngth):
         dct = {}
         for p in path_holder:
             with open(str(p), mode='r') as file:
                 text = file.read()
-            dct[p.stem] = text[:40]
+            dct[p.stem] = text[:lngth]
         return dct
     
-    def map_num_to_concl(self, path_holder):
+    def map_num_to_concl(self, path_holder, lngth):
         dct = {}
         for p in path_holder:
             with open(str(p), mode='r') as file:
                 text = file.read()
-            dct[text[:40]] = p.stem
+            dct[text[:lngth]] = p.stem
         return dct
 
     def load_text(self, path):
@@ -476,16 +482,23 @@ class DivTokLem():
                      load_dir_name='',
                      save_dir_name='',
                      sep_type='sep1',
-                     inden=''):
+                     inden='',
+                     write_to_db=False):
         load_path = (
             self.DM.dir_struct['Raw_text'].joinpath(load_dir_name)
         )
-        save_path = (
-            self.DM.dir_struct['DivTokPars'].joinpath(save_dir_name, 'DivDB')
-        )
-        print('Save path: ', save_path)
+        if write_to_db:
+            sqldb.create_conn(save_dir_name, 'Test3')
+            print(sqldb.conn)
+            sqldb.create_tabel('DivTokPars', (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT')))
+        else:
+            save_path = (
+                self.DM.dir_struct['DivTokPars'].\
+                joinpath(save_dir_name, 'DivDB')
+            )
         raw_files_gen = self.DM.iterate_text_loading(load_path)
         counter = 0
+        t_1 = time()
         for fle in raw_files_gen:
             print(inden+'Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
@@ -496,17 +509,40 @@ class DivTokLem():
             tokenized = self.CTP.iterate_tokenization_by_par(divided)
             t0=time()
             print(inden+'\tStarting tokenization and writing')
-            db = shelve.open(str(save_path), flag='c', writeback=False)
-            for tok_par in tokenized:
-                name = ('0'*(6+1-len(str(counter)))+str(counter))
-                db[name] = tok_par
-                counter += 1
-            print(inden+'\t', counter)
-            db.close()
-            print(
-                inden+'\tTokenization and writing '
-                +'complete in {} seconds!'.format(time()-t0)
+            if write_to_db:
+                holder = []
+                for tok_par in tokenized:
+                    name = ('0'*(6+1-len(str(counter)))+str(counter))
+                    #holder.append((name, tok_par))
+                    #data = [(name, '_'.join(tok_par))]
+                    holder.append((name, '_'.join(tok_par)))
+                    #print('Data length:', len(data))
+                    #print(data)
+                    #sqldb.insert_data('DivTokPars', data)
+                    counter += 1
+                    #if counter % 50000 == 0:
+                sqldb.insert_data('DivTokPars', holder)
+                holder=[]
+                print(
+                    inden+'\tTokenization and writing '
+                    +'complete in {} seconds!'.format(time()-t0)
+                )
+            else: 
+                db = shelve.open(str(save_path), flag='c', writeback=False)
+                for tok_par in tokenized:
+                    name = ('0'*(6+1-len(str(counter)))+str(counter))
+                    db[name] = tok_par
+                    counter += 1
+                print(inden+'\t', counter)
+                db.close()
+                print(
+                    inden+'\tTokenization and writing '
+                    +'complete in {} seconds!'.format(time()-t0)
+                )
+        print(
+            inden+('Total time costs: {}'.format(time()-t_1))
             )
+        sqldb.conn.close()
         
     def load_file(self, full_path):
         return self.DM.load_pickle(full_path)
@@ -960,7 +996,7 @@ class Scorer():
             #    zero_string = concl,
             #    file_name=FILE_NAMES[concl[:40]]+add_file_name
             #)
-            dct_cya[FILE_NAMES[concl[:40]]] = hl2
+            dct_cya[FILE_NAMES[concl[:180]]] = hl2
             if not auto_mode:
                 breaker = None
                 while breaker != '1' and breaker != '0':
@@ -1021,7 +1057,7 @@ class Scorer():
             if counter % 500 == 0:
                 print(counter)
         print('Corpus was scored in {} seconds.'.format(time()-t0))
-        name = FILE_NAMES[phrase[:40]]
+        name = FILE_NAMES[phrase[:180]]
         self.DTL.table_to_csv(
                      sorted(holder, key=lambda x: x[2]),
                      file_name=name+add_file_name,
