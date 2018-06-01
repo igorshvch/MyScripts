@@ -4,10 +4,92 @@ import pathlib as pthl
 PK = 'PRIMARY KEY'
 
 class DataBase():
-    def __init__(self):
+    options = {
+            (1,1,1) : (
+                lambda x,y,z: pthl.Path(x).joinpath\
+                (y, y).with_suffix('.db')
+            ),
+            (1,1,0) : (
+                lambda x,y,z: pthl.Path(x).joinpath\
+                (y, 'Test').with_suffix('.db')
+            ),
+            (1,0,1) : (
+                lambda x,y,z: pthl.Path(x).joinpath\
+                (z).with_suffix('.db')
+            ),
+            (1,0,0): (
+                lambda x,y,z: pthl.Path(x).joinpath\
+                ('Test').with_suffix('.db')
+            ),
+            (0,1,1): (
+                lambda x,y,z: pthl.Path().home().joinpath\
+                (y, z).with_suffix('.db')
+            ),
+            (0,1,0): (
+                lambda x,y,z: pthl.Path().home().joinpath\
+                (y, 'Test').with_suffix('.db')
+            ),
+            (0,0,1): (
+                lambda x,y,z: pthl.Path().home().joinpath\
+                (z).with_suffix('.db')
+            ),
+            (0,0,0): (
+                lambda x,y,z: pthl.Path().home().joinpath\
+                ('Test').with_suffix('.db')
+            )
+        }
+
+    def __init__(self,
+                 raw_path=None,
+                 dir_name=None,
+                 base_name=None):
+        self.conn = None 
+        self.cur = None
+        self.open(
+            raw_path=raw_path, dir_name=dir_name, base_name=base_name
+        )
+        self.path = {
+            'raw_path':raw_path,
+            'dir_name':dir_name,
+            'base_name':base_name
+        }
+        self.tables = set()
+    
+    def __call__(self,
+                 raw_path=None,
+                 dir_name=None,
+                 base_name=None,
+                 print_path=True):
+        if not raw_path and not dir_name and not base_name:
+            self.open(**self.path)
+        else:
+            key = (bool(raw_path), bool(dir_name), bool(base_name))
+            p = DataBase.options[key](raw_path, dir_name, base_name)
+            if print_path:
+                print(p)
+            self.conn = sqlite3.connect(str(p))
+            print('DB connection is established!')
+    
+    def open(self,
+             raw_path=None,
+             dir_name=None,
+             base_name=None,
+             print_path=True):
+        key = (bool(raw_path), bool(dir_name), bool(base_name))
+        p = DataBase.options[key](raw_path, dir_name, base_name)
+        if print_path:
+            print(p)
+        self.conn = sqlite3.connect(str(p))
+        print('DB connection is established!')
+    
+    def close(self, save=True):
+        if save:
+            self.conn.commit()
+            print('Changes are saved!')
+        self.conn.close()
         self.conn = None
         self.cur = None
-        self.tables = set()
+        print('DB is closed!')
     
     def create_conn(self, dir_name, base_name):
         p = pthl.Path(r'C:\Users\EA-ShevchenkoIS\TextProcessing')
