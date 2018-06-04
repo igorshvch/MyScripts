@@ -337,7 +337,10 @@ class CustomTextProcessor():
             pars_list = text.split('\n')
             for par in pars_list[4:]:
                 if par:
-                    res = [pars_list[0]] + [pars_list[3]]
+                    res = (
+                        [' '.join(self.tokenize(pars_list[0]))] + 
+                        [' '.join(self.tokenize(pars_list[3]))]
+                    )
                     res += self.tokenize(par)
                     yield res
     
@@ -351,16 +354,29 @@ class CustomTextProcessor():
     def lemmatize_by_dict(self, lem_dict, tokens_list):
         return [lem_dict[token] for token in tokens_list]
     
-    def iterate_lemmatize_par_by_dict(self, lem_dict, pars_gen, stop_w=None):
+    def iterate_lemmatize_par_by_dict(self,
+                                      lem_dict,
+                                      pars_gen,
+                                      stop_w=None,
+                                      db=False):
         '''
         Return generator object
         '''
-        for par in pars_gen:
-            act_info, par = par[:2], par[2:]
-            lems = [lem_dict[token] for token in par]
-            if stop_w:
-                lems = [lem for lem in lems if lem not in stop_w]
-            yield act_info + lems
+        if not db:
+            for par in pars_gen:
+                act_info, par = par[:2], par[2:]
+                lems = [lem_dict[token] for token in par]
+                if stop_w:
+                    lems = [lem for lem in lems if lem not in stop_w]
+                yield act_info + lems
+        else:
+            for par in pars_gen:
+                par = par[1].split('_')
+                act_info, par = par[:2], par[2:]
+                lems = [lem_dict[token] for token in par]
+                if stop_w:
+                    lems = [lem for lem in lems if lem not in stop_w]
+                yield '_'.join(act_info + lems)
     
     def iterate_lemmatize_by_dict(self, lem_dict, acts_gen):
         '''
@@ -426,17 +442,21 @@ class CustomTextProcessor():
             ]
             yield self.position_search(act)
     
-    def position_search_pars(self, words):
-        words = words[2:]
-        d = {word:set() for word in words}
-        counter = 0
-        for word in words:
-            d[word].add(counter)
-            counter+=1
-        d['total'] = len(words)
-        for word in words:
-            d['total_'+word]=len(d[word])
-        return d
+    def position_search_pars(self, words, db=False):
+        if not db:
+            words = words[2:]
+            d = {word:set() for word in words}
+            counter = 0
+            for word in words:
+                d[word].add(counter)
+                counter+=1
+            d['total'] = len(words)
+            for word in words:
+                d['total_'+word]=len(d[word])
+            return d
+        else:
+            words = words[2:]
+            pass
     
     
 class DivTokLem():
@@ -485,17 +505,20 @@ class DivTokLem():
                      inden='',
                      write_to_db=False):
         load_path = (
-            self.DM.dir_struct['Raw_text'].joinpath(load_dir_name)
+            self.DM.dir_struct['Raw_text']\
+            .joinpath(load_dir_name)
         )
-        if write_to_db:
-            sqldb.create_conn(save_dir_name, 'Test3')
-            print(sqldb.conn)
-            sqldb.create_tabel('DivTokPars', (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT')))
-        else:
-            save_path = (
-                self.DM.dir_struct['DivTokPars'].\
-                joinpath(save_dir_name, 'DivDB')
+        save_path = (
+                self.DM.dir_struct['DivTokPars'].joinpath(save_dir_name)
             )
+        if write_to_db:
+            DB = mysqlite.DataBase(raw_path=save_path, base_name='DivDB')
+            DB.create_tabel(
+                'DivTokPars', 
+                (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT'))
+            )
+        else:
+            save_path = save_path.joinpath('DivDB')
         raw_files_gen = self.DM.iterate_text_loading(load_path)
         counter = 0
         t_1 = time()
@@ -521,7 +544,7 @@ class DivTokLem():
                     #sqldb.insert_data('DivTokPars', data)
                     counter += 1
                     #if counter % 50000 == 0:
-                sqldb.insert_data('DivTokPars', holder)
+                DB.insert_data(holder)
                 holder=[]
                 print(
                     inden+'\tTokenization and writing '
@@ -542,7 +565,7 @@ class DivTokLem():
         print(
             inden+('Total time costs: {}'.format(time()-t_1))
             )
-        sqldb.conn.close()
+        DB.close()
         
     def load_file(self, full_path):
         return self.DM.load_pickle(full_path)
@@ -712,41 +735,80 @@ class DivTokLem():
                                 stop_w,
                                 load_dir_name='',
                                 save_dir_name='',
-                                inden=''):
+                                inden='',
+                                use_db=False):
         #load paths and lem gen
-        load_path = (
-            self.DM.dir_struct['DivTokPars'].joinpath(load_dir_name, 'DivDB')
-        )
-        save_path =(
-            self.DM.dir_struct['Norm1Pars'].joinpath(save_dir_name, 'NormDB')
-        )
-        print('This is load path:', load_path)
-        pars_gen = self.DM.iterate_shelve_reading(load_path)
-        lemmed_pars_gen = self.CTP.iterate_lemmatize_par_by_dict(
-            lem_dict,
-            pars_gen,
-            stop_w
-        )
+        if use_db:
+            DB_load = mysqlite.DataBase(
+                dir_name='TextProcessing/DivTokPars/'+load_dir_name,
+                base_name='DivDB'
+            )
+            DB_save = mysqlite.DataBase(
+                dir_name='TextProcessing/Norm1Pars/'+save_dir_name,
+                base_name='Norm1DB'
+            )
+            DB_save.create_tabel(
+                'Norm1Pars',
+                (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT'))
+            )
+            pars_gen = DB_load.iterate_row_retr()
+        else:
+            load_path = (
+                self.DM.dir_struct['DivTokPars'].joinpath(load_dir_name, 'DivDB')
+            )
+            save_path =(
+                self.DM.dir_struct['Norm1Pars'].joinpath(save_dir_name, 'NormDB')
+            )
+            print('This is load path:', load_path)
+            pars_gen = self.DM.iterate_shelve_reading(load_path)
+            lemmed_pars_gen = self.CTP.iterate_lemmatize_par_by_dict(
+                lem_dict,
+                pars_gen,
+                stop_w
+            )
         counter=0
         t0 = time()
         t1 = time()
         print(inden+'Start normalization and writing')
-        db = shelve.open(str(save_path), flag='c', writeback=True)
-        for lem_par in lemmed_pars_gen:
-            name = ('0'*(6+1-len(str(counter)))+str(counter))
-            db[name] = lem_par
-            counter += 1
-            if counter % 50000 == 0:
-                print(
-                    '\tAt this moment '
-                    +'{} pars were normalized. {:8.4f}'.format(
-                        counter, (time()-t1)
-                    )
+        if use_db:
+            for bath in pars_gen:
+                holder = []
+                lemmed_pars_gen = self.CTP.iterate_lemmatize_par_by_dict(
+                    lem_dict,
+                    bath,
+                    stop_w,
+                    db=True
                 )
-                t1=time()
-                db.sync()
-        print(counter)
-        db.close()
+                for lem_par in lemmed_pars_gen:
+                    name = ('0'*(6+1-len(str(counter)))+str(counter))
+                    holder.append((name, lem_par))
+                    counter += 1
+                DB_save.insert_data(holder)
+                if counter % 50000 == 0:
+                    print(
+                        '\tAt this moment '
+                        +'{} pars were normalized. {:8.4f}'.format(
+                            counter, (time()-t1)
+                        )
+                    )
+                    t1=time()
+        else:
+            db = shelve.open(str(save_path), flag='c', writeback=True)
+            for lem_par in lemmed_pars_gen:
+                name = ('0'*(6+1-len(str(counter)))+str(counter))
+                db[name] = lem_par
+                counter += 1
+                if counter % 50000 == 0:
+                    print(
+                        '\tAt this moment '
+                        +'{} pars were normalized. {:8.4f}'.format(
+                            counter, (time()-t1)
+                        )
+                    )
+                    t1=time()
+                    db.sync()
+            print(counter)
+            db.close()
         print(
             inden+'Normalization and writing '
             +'complete in {} seconds'.format(time()-t0)
@@ -865,6 +927,48 @@ class DivTokLem():
         print(inden+'Start indexing and writing')
         db = shelve.open(str(save_path), flag='c', writeback=True)
         for par in pars_gen:
+            index = self.CTP.position_search_pars(par)
+            name = ('0'*(6+1-len(str(counter)))+str(counter))
+            db[name] = index
+            if counter % 50000 == 0:
+                print(
+                    '\tAt this moment '
+                    +'{} pars were indexed. {:8.4f}'.format(
+                        counter, (time()-t1)
+                    )
+                )
+                t1=time()
+                db.sync()
+            counter+=1
+        print(counter)
+        db.close()
+        print(
+            inden+'Indexing and writing '
+            +'complete in {} seconds'.format(time()-t0)
+        )
+
+    def create_index_tables_pars_db(self,
+                                    load_dir_name='',
+                                    save_dir_name='',
+                                    inden=''):
+        DB_load = mysqlite.DataBase(
+                dir_name='TextProcessing/Norm1Pars/'+load_dir_name,
+                base_name='Norm1DB'
+        )
+        DB_save = mysqlite.DataBase(
+                dir_name='TextProcessing/ParsInfo/'+save_dir_name,
+                base_name='IndexDB'
+        )
+        DB_save.create_tabel(
+                'ParsInfo',
+                (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT'))
+        )
+        pars_gen = DB_load.iterate_row_retr()
+        counter=0
+        t0 = time()
+        t1 = time()
+        print(inden+'Start indexing and writing')
+        for batch in pars_gen:
             index = self.CTP.position_search_pars(par)
             name = ('0'*(6+1-len(str(counter)))+str(counter))
             db[name] = index

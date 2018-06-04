@@ -42,7 +42,8 @@ class DataBase():
     def __init__(self,
                  raw_path=None,
                  dir_name=None,
-                 base_name=None):
+                 base_name=None,
+                 tb_name=False):
         self.conn = None 
         self.cur = None
         self.open(
@@ -53,7 +54,8 @@ class DataBase():
             'dir_name':dir_name,
             'base_name':base_name
         }
-        self.tables = set()
+        if tb_name:
+            self.table_name = self.retrive_tabel_name()
     
     def __call__(self,
                  raw_path=None,
@@ -68,7 +70,18 @@ class DataBase():
             if print_path:
                 print(p)
             self.conn = sqlite3.connect(str(p))
+            self.cur = self.conn.cursor()
             print('DB connection is established!')
+    
+    def __getitem__(self, key):
+        if not self.cur:
+            self.open(**self.path)
+        self.cur.execute(
+            'SELECT (par) FROM {tb} WHERE id="{txt}"'\
+            .format(tb = self.table_name, txt = key)
+        )
+        val = self.cur.fetchone()
+        return val
     
     def open(self,
              raw_path=None,
@@ -80,6 +93,7 @@ class DataBase():
         if print_path:
             print(p)
         self.conn = sqlite3.connect(str(p))
+        self.cur = self.conn.cursor()
         print('DB connection is established!')
     
     def close(self, save=True):
@@ -91,25 +105,59 @@ class DataBase():
         self.cur = None
         print('DB is closed!')
     
-    def create_conn(self, dir_name, base_name):
-        p = pthl.Path(r'C:\Users\EA-ShevchenkoIS\TextProcessing')
-        p = p.joinpath(dir_name, base_name).with_suffix('.db')
-        print(p)
-        self.conn = sqlite3.connect(str(p))
-
-    def create_cur(self, base_name=None, dir_name=None):
-        if base_name and not self.conn:
-            p = pthl.Path(r'C:\Users\EA-ShevchenkoIS\TextProcessing')
-            p = p.joinpath(dir_name, base_name).with_suffix('.db')
-            print(p)
-            self.conn = sqlite3.connect(str(p))
-            self.cur = self.conn.cursor()
-        elif not base_name and self.conn:
-            self.cur = self.conn.cursor()
-        else:
-            print(
-                'Error! Try to set or path either self.conn'
+    def retrive_rows(self, num_of_rows, first_row=0, only_par_col=False):
+        if not self.cur:
+            self.open(**self.path)
+        if only_par_col:
+            self.cur.execute(
+                'SELECT par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                .format(tn=self.table_name,nr=num_of_rows,fr=first_row)
             )
+        else:
+            self.cur.execute(
+                'SELECT id, par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                .format(tn=self.table_name,nr=num_of_rows,fr=first_row)
+            )
+        rows = self.cur.fetchall()
+        return rows
+    
+    def iterate_row_retr(self, output=50000, first_row=0, only_par_col=False):
+        def inner_func(num_of_rows, inner_fr, only_par_col=False):
+            if not self.cur:
+                self.open(**self.path)
+            if only_par_col:
+                self.cur.execute(
+                    'SELECT par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                    .format(tn=self.table_name,nr=num_of_rows,fr=inner_fr)
+                )
+            elif only_par_col==False:
+                self.cur.execute(
+                    'SELECT id, par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                    .format(tn=self.table_name,nr=num_of_rows,fr=inner_fr)
+                )
+            rows = self.cur.fetchall()
+            return rows
+        counter = first_row
+        base = (543434-first_row)//output + 1
+        while base:
+            batch = inner_func(
+                num_of_rows = output,
+                inner_fr = counter)
+            counter +=len(batch)
+            base-=1
+            yield batch
+    
+    def retrive_tabel_name(self):
+        if not self.cur:
+            self.open(**self.path)
+        tb_name = self.cur.execute(
+            '''
+            SELECT name FROM sqlite_master
+            WHERE type="table"
+            '''
+        )
+        for name in tb_name:
+            return name[0]
     
     def create_tabel(self, table_name, columns):
         col_struct=''
@@ -118,11 +166,9 @@ class DataBase():
                 col_struct += '{} {} {},'.format(*i)
             else:
                 col_struct += '{} {},'.format(*i)
-        #print(col_struct)
-        #print('CREATE TABLE {} ({})'.format(table_name, col_struct))
         col_struct = col_struct[:-1]
         if not self.cur:
-            self.create_cur()
+            self.open(**self.path)
         self.cur.execute(
             'CREATE TABLE {} ({})'.format(table_name, col_struct)
         )
@@ -130,24 +176,23 @@ class DataBase():
             'Tabel \'{}\' with columns:\n\'{}\'\nwas created!'\
             .format(table_name, col_struct)
         )
-        self.tables.add(table_name)
+        self.table_name = table_name
         self.conn.commit()
     
-    def insert_data(self, table_name, data):
+    def insert_data(self, data):
         if not self.cur:
-            self.create_cur()
-        #print('Data len:', len(data))
+            self.open(**self.path)
         if len(data) == 1:
             self.cur.execute(
-                'INSERT INTO {} VALUES (?,?)'\
-                .format(table_name), (data[0][0], data[0][1])
+                'INSERT INTO {tn} VALUES (?,?)'\
+                .format(tn=self.table_name), (data[0][0], data[0][1])
             )
+            print('Data was inserted!')
         else:
             self.cur.executemany(
-                'INSERT INTO {} VALUES (?,?)'\
-                .format(table_name), data
+                'INSERT INTO {tn} VALUES (?,?)'\
+                .format(tn=self.table_name), data
             )
-        #print('Data was inserted!')
         self.conn.commit()
 
     
