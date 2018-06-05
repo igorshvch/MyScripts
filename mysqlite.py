@@ -77,10 +77,10 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         self.cur.execute(
-            'SELECT (par) FROM {tb} WHERE id="{txt}"'\
-            .format(tb = self.table_name, txt = key)
+            'SELECT id, par FROM {tb} WHERE id LIKE "{txt}"'\
+            .format(tb = self.table_name, txt = (key+'%'))
         )
-        val = self.cur.fetchone()
+        val = self.cur.fetchall()
         return val
     
     def open(self,

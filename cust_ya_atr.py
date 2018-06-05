@@ -63,11 +63,9 @@ FILE_NAMES = {
     'Имеет ли налогоплательщик право на вычет по НДС, если контрагент не представляет отчетность в налоговые органы (ст. 54.1, п. 1 ст. 171 НК РФ) Налогоплательщик имеет право на вычет,': '80'
 }
 
+
 #pymoprhy2 analyzer instance
 MORPH = pymorphy2.MorphAnalyzer()
-
-#DB wrapper instance
-sqldb = mysqlite.DataBase()
 
 
 class ReadWriteTool():
@@ -371,12 +369,12 @@ class CustomTextProcessor():
                 yield act_info + lems
         else:
             for par in pars_gen:
-                par = par[1].split('_')
+                par = par[1].split('#')
                 act_info, par = par[:2], par[2:]
                 lems = [lem_dict[token] for token in par]
                 if stop_w:
                     lems = [lem for lem in lems if lem not in stop_w]
-                yield '_'.join(act_info + lems)
+                yield '#'.join(act_info + lems)
     
     def iterate_lemmatize_by_dict(self, lem_dict, acts_gen):
         '''
@@ -430,7 +428,7 @@ class CustomTextProcessor():
             counter+=1
         d['total'] = len(words)
         for word in words:
-            d['total_'+word]=len(d[word])
+            d['total#'+word]=len(d[word])
         return d
     
     def iterate_position_search(self, act_gen):
@@ -442,21 +440,28 @@ class CustomTextProcessor():
             ]
             yield self.position_search(act)
     
-    def position_search_pars(self, words, db=False):
-        if not db:
-            words = words[2:]
-            d = {word:set() for word in words}
-            counter = 0
-            for word in words:
-                d[word].add(counter)
-                counter+=1
-            d['total'] = len(words)
-            for word in words:
-                d['total_'+word]=len(d[word])
-            return d
-        else:
-            words = words[2:]
-            pass
+    def position_search_pars(self, words):
+        words = words[2:]
+        d = {word:set() for word in words}
+        counter = 0
+        for word in words:
+            d[word].add(counter)
+            counter+=1
+        d['total'] = len(words)
+        for word in words:
+            d['total#'+word]=len(d[word])
+        return d
+    
+    def position_search_pars_db(self, words):
+        d = {word:set() for word in words}
+        counter = 0
+        for word in words:
+            d[word].add(counter)
+            counter+=1
+        d['total'] = len(words)
+        for word in words:
+            d['total#'+word]=len(d[word])
+        return d
     
     
 class DivTokLem():
@@ -538,7 +543,7 @@ class DivTokLem():
                     name = ('0'*(6+1-len(str(counter)))+str(counter))
                     #holder.append((name, tok_par))
                     #data = [(name, '_'.join(tok_par))]
-                    holder.append((name, '_'.join(tok_par)))
+                    holder.append((name, '#'.join(tok_par)))
                     #print('Data length:', len(data))
                     #print(data)
                     #sqldb.insert_data('DivTokPars', data)
@@ -741,7 +746,8 @@ class DivTokLem():
         if use_db:
             DB_load = mysqlite.DataBase(
                 dir_name='TextProcessing/DivTokPars/'+load_dir_name,
-                base_name='DivDB'
+                base_name='DivDB',
+                tb_name=True
             )
             DB_save = mysqlite.DataBase(
                 dir_name='TextProcessing/Norm1Pars/'+save_dir_name,
@@ -792,6 +798,8 @@ class DivTokLem():
                         )
                     )
                     t1=time()
+            DB_load.close()
+            DB_save.close()
         else:
             db = shelve.open(str(save_path), flag='c', writeback=True)
             for lem_par in lemmed_pars_gen:
@@ -953,7 +961,8 @@ class DivTokLem():
                                     inden=''):
         DB_load = mysqlite.DataBase(
                 dir_name='TextProcessing/Norm1Pars/'+load_dir_name,
-                base_name='Norm1DB'
+                base_name='Norm1DB',
+                tb_name=True
         )
         DB_save = mysqlite.DataBase(
                 dir_name='TextProcessing/ParsInfo/'+save_dir_name,
@@ -969,21 +978,33 @@ class DivTokLem():
         t1 = time()
         print(inden+'Start indexing and writing')
         for batch in pars_gen:
-            index = self.CTP.position_search_pars(par)
-            name = ('0'*(6+1-len(str(counter)))+str(counter))
-            db[name] = index
-            if counter % 50000 == 0:
-                print(
-                    '\tAt this moment '
-                    +'{} pars were indexed. {:8.4f}'.format(
-                        counter, (time()-t1)
+            holder = []
+            for par in batch:
+                par = par[1].split('#')
+                act_info, par = par[:2], par[2:]
+                name = ('0'*(6+1-len(str(counter)))+str(counter))
+                index = self.CTP.position_search_pars_db(par)
+                for item in index.items():
+                    key, info = item
+                    holder.append((name+'#'+key, str(info)))
+                try:
+                    holder.append((name+'#'+'req', act_info[1]))
+                    holder.append((name+'#'+'court', act_info[0]))
+                except:
+                    print(act_info)
+                    print(name)
+                if counter % 50000 == 0:
+                    print(
+                        '\tAt this moment '
+                        +'{} pars were indexed. {:8.4f}'.format(
+                            counter, (time()-t1)
+                        )
                     )
-                )
-                t1=time()
-                db.sync()
-            counter+=1
-        print(counter)
-        db.close()
+                    t1=time()
+                counter+=1
+            DB_save.insert_data(holder)
+        DB_load.close()
+        DB_save.close()
         print(
             inden+'Indexing and writing '
             +'complete in {} seconds'.format(time()-t0)
@@ -1121,6 +1142,56 @@ class Scorer():
         print('\nDB connections were terminated!\n')
         print('Execution ended')
         return dct_cya
+    
+    def process_concl_pars_db(self,
+                              auto_mode=False,
+                              concl_dir_name='',
+                              dpars_dir_name='',
+                              info_dir_name='',
+                              save_dir_name='',
+                              stop_w=None,
+                              doc_len=None,
+                              add_file_name=''):
+        self.D=doc_len
+        ###Paths
+        path_to_concl = (
+            self.DM.dir_struct['Concls'].joinpath(concl_dir_name)
+        )
+        path_to_info = (
+                self.DM.dir_struct['ParsInfo'].joinpath(info_dir_name)
+        )
+        path_to_dpars = (
+            self.DM.dir_struct['DivTokPars'].joinpath(dpars_dir_name)
+        )
+        #DB connection and concls loading
+        DB_load_info = mysqlite.DataBase(
+            raw_path = path_to_info,
+            base_name = 'IndexDB',
+            tb_name = True
+        )
+        DB_load_dpars = mysqlite.DataBase(
+            raw_path = path_to_dpars,
+            base_name = 'DivDB',
+            tb_name = True
+        )
+        concls = self.DM.iterate_text_loading(path_to_concl)
+        vocab_nw = self.DTL.load_vocab(spec='norm1', dir_name='2018-05-22')
+        dct_cya={}
+        for concl in concls:
+            print(concl[:40])
+            concl_prep = self.CTP.full_process(concl, stop_w=stop_w)
+            print(' '.join(concl_prep)+'\n')
+            holder =[] #holder={}
+            ###processing
+            t0=time()
+            t1=time()
+            gen_info = DB_load_info.iterate_row_retr(output=20000)
+            print('Starting corpus scoring!')
+            for counter in range(self.D):
+                key = ('0'*(6+1-len(str(counter)))+str(counter))
+                pass
+
+
     
     def process_one_phrase_acts(self,
                                 phrase,
@@ -1565,3 +1636,77 @@ class AverScorer(Debugger):
             )
 
 
+
+st =(
+'''
+                npar = npar_db[key]
+                npar_court, npar_req, npar = *npar[:2], npar[2:]
+                dpar = ' '.join(dpar_db[key][2:])
+                info = info_db[key]
+                sc = self.score(concl_prep, npar, info, vocab_nw)
+                holder.append((npar_court, npar_req, sc, dpar))
+                #if npar_court in holder:
+                #    holder[npar_court].append(npar_req, sc, dpar)
+                #else:
+                #    holder[npar_court] = []
+                #    holder[npar_court].append(npar_req, sc, dpar)
+                if counter % 50000 == 0:
+                    print(
+                        '\tAt this moment '
+                        +'{} pars were scored. {:8.4f}'.format(
+                            counter, (time()-t1)
+                        )
+                    )
+                    t1=time()
+            print('Corpus was scored in {} seconds.'.format(time()-t0))
+            print('Starting pars sorting!')
+            t2=time()
+            hl = {}
+            for i in holder:
+                c, r, s, p = i
+                key = (c, r)
+                if key in hl:
+                    if hl[key][0] < s:
+                        hl[key] = (s, p)
+                else:
+                    hl[key] = (s, p)
+            print('Totla acts1:', len(hl))
+            del holder
+            hl2 = []
+            for i in hl.items():
+                hl2.append((i[0][0], i[0][1], i[1][0], i[1][1]))
+            del hl
+            print('Totla acts2:', len(hl2))
+            hl2 = sorted(hl2, key=lambda x: x[2], reverse=True)
+            print('Sorting complete in {} seconds'.format(time()-t2))
+            print('Starting writing!')                
+            #self.DTL.table_to_csv(
+            #    hl2,
+            #    dir_name=save_dir_name,
+            #    header=('Суд','Реквизиты','Оценка', 'Абзац'),
+            #    zero_string = concl,
+            #    file_name=FILE_NAMES[concl[:40]]+add_file_name
+            #)
+            dct_cya[FILE_NAMES[concl[:180]]] = hl2
+            if not auto_mode:
+                breaker = None
+                while breaker != '1' and breaker != '0':
+                    breaker = input(
+                    ("Обработка вывода окончена. Обработать следующий вывод? "
+                    +"[1 for 'yes'/0 for 'no']\n")
+                    )
+                    if breaker != '1' and breaker != '0':
+                        print('Вы ввели неподдерживаемое значение!')
+                if breaker == '0':
+                    print('Programm was terminated')
+                    return dct_cya
+                elif breaker == '1':
+                    print('Continue execution')
+        dpar_db.close()
+        npar_db.close()
+        info_db.close()
+        print('\nDB connections were terminated!\n')
+        print('Execution ended')
+        return dct_cya
+'''
+)
