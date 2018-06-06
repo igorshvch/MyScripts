@@ -46,6 +46,7 @@ class DataBase():
                  tb_name=False):
         self.conn = None 
         self.cur = None
+        self.tables = set()
         self.open(
             raw_path=raw_path, dir_name=dir_name, base_name=base_name
         )
@@ -56,6 +57,7 @@ class DataBase():
         }
         if tb_name:
             self.table_name = self.retrive_tabel_name()
+            self.tables.add(self.table_name)
     
     def __call__(self,
                  raw_path=None,
@@ -77,10 +79,10 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         self.cur.execute(
-            'SELECT id, par FROM {tb} WHERE id LIKE "{txt}"'\
-            .format(tb = self.table_name, txt = (key+'%'))
+            'SELECT id, par FROM {tb} WHERE id=="{txt}"'\
+            .format(tb = self.table_name, txt = key)
         )
-        val = self.cur.fetchall()
+        val = self.cur.fetchone()
         return val
     
     def open(self,
@@ -121,8 +123,12 @@ class DataBase():
         rows = self.cur.fetchall()
         return rows
     
-    def iterate_row_retr(self, output=50000, first_row=0, only_par_col=False):
-        def inner_func(num_of_rows, inner_fr, only_par_col=False):
+    def iterate_row_retr(self,
+                         output=50000,
+                         first_row=0,
+                         only_par_col=False,
+                         row_voc=None):
+        def inner_func(num_of_rows, inner_fr, only_par_col=only_par_col):
             if not self.cur:
                 self.open(**self.path)
             if only_par_col:
@@ -137,15 +143,35 @@ class DataBase():
                 )
             rows = self.cur.fetchall()
             return rows
-        counter = first_row
-        base = (543434-first_row)//output + 1
-        while base:
-            batch = inner_func(
-                num_of_rows = output,
-                inner_fr = counter)
-            counter +=len(batch)
-            base-=1
-            yield batch
+        if row_voc:
+            offset = 0
+            plus1 = 0
+            plus2 = output-1
+            st_plus1 = ('0'*(6+1-len(str(plus1)))+str(plus1))
+            st_plus2 = ('0'*(6+1-len(str(plus2)))+str(plus2))
+            num_of_r = row_voc[st_plus2]
+            while plus2 < 570000:
+                batch = inner_func(
+                    num_of_rows = num_of_r,
+                    inner_fr = offset)
+                plus1 += output
+                plus2 += output
+                print(plus1, plus2)
+                st_plus1 = ('0'*(6+1-len(str(plus1)))+str(plus1))
+                st_plus2 = ('0'*(6+1-len(str(plus2)))+str(plus2))
+                offset = row_voc[st_plus1]
+                num_of_r = row_voc.get(st_plus2, row_voc['0543433']) - offset
+                yield batch
+        else:
+            counter = first_row
+            base = (543434-first_row)//output + 1
+            while base:
+                batch = inner_func(
+                    num_of_rows = output,
+                    inner_fr = counter)
+                counter += output
+                base-=1
+                yield batch
     
     def retrive_tabel_name(self):
         if not self.cur:
@@ -159,7 +185,7 @@ class DataBase():
         for name in tb_name:
             return name[0]
     
-    def create_tabel(self, table_name, columns):
+    def create_tabel(self, table_name, columns, verbose=False):
         col_struct=''
         for i in columns:
             if len(i) == 3:
@@ -170,13 +196,15 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         self.cur.execute(
-            'CREATE TABLE {} ({})'.format(table_name, col_struct)
+            'CREATE TABLE {tn} ({cs})'.format(tn=table_name, cs=col_struct)
         )
-        print(
-            'Tabel \'{}\' with columns:\n\'{}\'\nwas created!'\
-            .format(table_name, col_struct)
-        )
+        if verbose:
+            print(
+                'Tabel \'{}\' with columns:\n\'{}\'\nwas created!'\
+                .format(table_name, col_struct)
+            )
         self.table_name = table_name
+        self.tables.add(table_name)
         self.conn.commit()
     
     def insert_data(self, data):
@@ -192,6 +220,24 @@ class DataBase():
             self.cur.executemany(
                 'INSERT INTO {tn} VALUES (?,?)'\
                 .format(tn=self.table_name), data
+            )
+        self.conn.commit()
+    
+    def insert_data_by_tabel(self, table_name, data):
+        if table_name not in self.tables:
+            raise TypeError('Incorrect table name!')
+        if not self.cur:
+            self.open(**self.path)
+        if len(data) == 1:
+            self.cur.execute(
+                'INSERT INTO {tn} VALUES (?,?)'\
+                .format(tn=table_name), (data[0][0], data[0][1])
+            )
+            print('Data was inserted!')
+        else:
+            self.cur.executemany(
+                'INSERT INTO {tn} VALUES (?,?)'\
+                .format(tn=table_name), data
             )
         self.conn.commit()
 

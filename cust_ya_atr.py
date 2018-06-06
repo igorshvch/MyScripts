@@ -980,19 +980,19 @@ class DivTokLem():
         for batch in pars_gen:
             holder = []
             for par in batch:
+                keys=[]
                 par = par[1].split('#')
                 act_info, par = par[:2], par[2:]
                 name = ('0'*(6+1-len(str(counter)))+str(counter))
                 index = self.CTP.position_search_pars_db(par)
                 for item in index.items():
                     key, info = item
-                    holder.append((name+'#'+key, str(info)))
-                try:
-                    holder.append((name+'#'+'req', act_info[1]))
-                    holder.append((name+'#'+'court', act_info[0]))
-                except:
-                    print(act_info)
-                    print(name)
+                    key = name+'#'+key
+                    holder.append((key, str(info)))
+                    keys.append(key)
+                all_keys = '|'.join(keys)
+                holder.append((name+'#req', act_info[1]))
+                holder.append((name+'#court', act_info[0]))
                 if counter % 50000 == 0:
                     print(
                         '\tAt this moment '
@@ -1002,6 +1002,7 @@ class DivTokLem():
                     )
                     t1=time()
                 counter+=1
+                holder.append((name+'#all_keys', all_keys))
             DB_save.insert_data(holder)
         DB_load.close()
         DB_save.close()
@@ -1144,14 +1145,15 @@ class Scorer():
         return dct_cya
     
     def process_concl_pars_db(self,
+                              bdh = None,
                               auto_mode=False,
                               concl_dir_name='',
-                              dpars_dir_name='',
+                              npars_dir_name='',
                               info_dir_name='',
-                              save_dir_name='',
                               stop_w=None,
                               doc_len=None,
-                              add_file_name=''):
+                              output=50000,
+                              end=True):
         self.D=doc_len
         ###Paths
         path_to_concl = (
@@ -1160,8 +1162,8 @@ class Scorer():
         path_to_info = (
                 self.DM.dir_struct['ParsInfo'].joinpath(info_dir_name)
         )
-        path_to_dpars = (
-            self.DM.dir_struct['DivTokPars'].joinpath(dpars_dir_name)
+        path_to_npars = (
+            self.DM.dir_struct['Norm1Pars'].joinpath(npars_dir_name)
         )
         #DB connection and concls loading
         DB_load_info = mysqlite.DataBase(
@@ -1169,27 +1171,124 @@ class Scorer():
             base_name = 'IndexDB',
             tb_name = True
         )
-        DB_load_dpars = mysqlite.DataBase(
-            raw_path = path_to_dpars,
-            base_name = 'DivDB',
+        DB_load_npars = mysqlite.DataBase(
+            raw_path = path_to_npars,
+            base_name = 'Norm1DB',
             tb_name = True
         )
+        #form index_gen
+        t_0 = time()
+        print('Start index base\'s keys retrival')
+        keys = DB_load_info.cur.execute('SELECT rowid FROM ParsInfo WHERE id LIKE "%#all_keys"')
+        keys = keys.fetchall()
+        keys = [i[0] for  i in keys]
+        row_voc = {}
+        for rv_count in range(len(keys)):
+            rv_key = ('0'*(6+1-len(str(rv_count)))+str(rv_count))
+            row_voc[rv_key] = keys[rv_count]
+        print('Retrivel ended in {} seconds'.format(time()-t_0))
+        index_gen = DB_load_info.iterate_row_retr(output=output,  row_voc=row_voc)
+        if end:
+            return row_voc
+        #################
         concls = self.DM.iterate_text_loading(path_to_concl)
         vocab_nw = self.DTL.load_vocab(spec='norm1', dir_name='2018-05-22')
         dct_cya={}
+        t0=time()
         for concl in concls:
             print(concl[:40])
             concl_prep = self.CTP.full_process(concl, stop_w=stop_w)
             print(' '.join(concl_prep)+'\n')
             holder =[] #holder={}
             ###processing
-            t0=time()
             t1=time()
-            gen_info = DB_load_info.iterate_row_retr(output=20000)
+            #gen_info = DB_load_info.iterate_row_retr(output=20000)
             print('Starting corpus scoring!')
-            for counter in range(self.D):
-                key = ('0'*(6+1-len(str(counter)))+str(counter))
-                pass
+            output_base1 = 0
+            output_base2 = output
+            counter = 0
+            for batch in index_gen:
+                print('New batch!')
+                act_keys = [
+                    ('0'*(6+1-len(str(i)))+str(i))
+                    for i in range(output_base1, output_base2)
+                ]
+                output_base1 += output
+                output_base2 += output
+                print(
+                    len(act_keys), act_keys[0], act_keys[-1], output_base1, output_base2
+                )
+                batch_dct = dict(batch)
+                if bdh:
+                    bdh.append(batch_dct)
+                for act_key in act_keys:
+                    #print(act_key)
+                    npar = DB_load_npars[act_key][1].split('#')
+                    court, req, npar = npar[0], npar[1], npar[2:]
+                    info_dct = {}
+                    inner_keys = batch_dct[act_key+'#all_keys'].split('|')
+                    for inner_key in inner_keys:
+                        info_dct[inner_key[8:]] = eval(batch_dct[inner_key])
+                    sc = self.score(concl_prep, npar, info_dct, vocab_nw)
+                    holder.append((court, req, sc, npar))
+                    counter+=1
+                    if counter % 25000 == 0:
+                        print(
+                            '\tAt this moment '
+                            +'{} pars were scored. {:8.4f}'.format(
+                                counter, (time()-t1)
+                            )
+                        )
+                        t1=time()
+            print('Corpus was scored in {} seconds.'.format(time()-t0))
+            print('Starting pars sorting!')
+            t2=time()
+            hl = {}
+            for i in holder:
+                c, r, s, p = i
+                key = (c, r)
+                if key in hl:
+                    if hl[key][0] < s:
+                        hl[key] = (s, p)
+                else:
+                    hl[key] = (s, p)
+            print('Totla acts1:', len(hl))
+            del holder
+            hl2 = []
+            for i in hl.items():
+                hl2.append((i[0][0], i[0][1], i[1][0], i[1][1]))
+            del hl
+            print('Totla acts2:', len(hl2))
+            hl2 = sorted(hl2, key=lambda x: x[2], reverse=True)
+            print('Sorting complete in {} seconds'.format(time()-t2))
+            print('Starting writing!')
+            dct_cya[FILE_NAMES[concl[:180]]] = hl2
+            if not auto_mode:
+                breaker = None
+                while breaker != '1' and breaker != '0':
+                    breaker = input(
+                    ("Обработка вывода окончена. Обработать следующий вывод? "
+                    +"[1 for 'yes'/0 for 'no']\n")
+                    )
+                    if breaker != '1' and breaker != '0':
+                        print('Вы ввели неподдерживаемое значение!')
+                if breaker == '0':
+                    print('Programm was terminated')
+                    return dct_cya
+                elif breaker == '1':
+                    print('Continue execution')
+        print('\nDB connections were terminated!\n')
+        print('Execution ended')
+        return dct_cya
+
+
+
+
+
+
+
+
+                
 
 
     
@@ -1246,7 +1345,7 @@ class Scorer():
         if word1 in info and word2 in info:
             order1 = info[word1]
             order2 = info[word2]
-            if info['total_'+word1]<info['total_'+word2]:
+            if info['total#'+word1]<info['total#'+word2]:
                 min_order = order1
                 max_order = order2
             else:
@@ -1270,9 +1369,9 @@ class Scorer():
         else:
             return 0
 
-    def w_single(self, word, act, info, vocab):
+    def w_single(self, word, info, vocab):
         DL = info['total']
-        TF = info.get('total_'+word)
+        TF = info.get('total#'+word)
         if not TF:
             return 0
         else:
@@ -1290,7 +1389,7 @@ class Scorer():
         )
     
     def w_allwords(self, phrase_words, act, vocab):
-        act_words = set([w for par in act for w in par])
+        act_words = set(act) ###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         mis_count = 0
         for w in phrase_words:
             if w not in act_words:
@@ -1304,7 +1403,7 @@ class Scorer():
         return 0.2*sum(log_ps)*0.03**mis_count
     
     def score(self, phrase_words, act, info, vocab):
-        w_singles = [self.w_single(w, act, info, vocab) for w in phrase_words]
+        w_singles = [self.w_single(w, info, vocab) for w in phrase_words]
         #print(w_singles)
         pairs = self.CTP.create_2grams(phrase_words)
         #print(pairs)
