@@ -473,26 +473,35 @@ class Constructor():
                 'Raw_text': (
                     pthl.Path().home().joinpath('TextProcessing','RawText')
                 ),
-                'Divided_and_tokenized': (
+                'DivTok': (
                     pthl.Path().home().joinpath('TextProcessing','DivToks')
                 ),
-                'Normalized_by_parser1': (
+                'DivTokPars': (
+                    pthl.Path().home().joinpath('TextProcessing','DivTokPars')
+                ),
+                'Norm1': (
                     pthl.Path().home().joinpath('TextProcessing','Norm1')
                 ),
-                'Conclusions': (
+                'Norm1Pars': (
+                    pthl.Path().home().joinpath('TextProcessing','Norm1Pars')
+                ),
+                'Concls': (
                     pthl.Path().home().joinpath('TextProcessing', 'Conclusions')
                 ),
-                'Statistics_and_data': (
+                'StatData': (
                     pthl.Path().home().joinpath('TextProcessing', 'StatData')
                 ),
                 'Results': (
                     pthl.Path().home().joinpath('TextProcessing', 'Results')
                 ),
-                'Divided_acts': (
+                'DivActs': (
                     pthl.Path().home().joinpath('TextProcessing', 'DivActs')
                 ),
-                'Acts_info': (
+                'ActsInfo': (
                     pthl.Path().home().joinpath('TextProcessing', 'ActsInfo')
+                ),
+                'ParsInfo': (
+                    pthl.Path().home().joinpath('TextProcessing', 'ParsInfo')
                 )
             }
         print('Constructor class created')
@@ -511,6 +520,7 @@ class Constructor():
         raw_files = self.RWT.iterate_text_loading(path)
         counter1 = 0
         counter2 = 0
+        t_0 = time()
         for fle in raw_files:
             print(inden+'Starting new file processing!')
             cleaned = self.CTP.court_decisions_cleaner(fle)
@@ -524,7 +534,7 @@ class Constructor():
             print(inden+'\tStarting tokenization and writing')
             file_paths = deque(self.RWT.create_writing_paths(
                 counter1, counter2,
-                self.dir_struct['Divided_and_tokenized'].joinpath(dir_name),
+                self.dir_struct['DivTok'].joinpath(dir_name),
                 suffix=''
             ))
             for tok_act in tokenized:
@@ -537,6 +547,7 @@ class Constructor():
                 inden+'\tTokenization and writing '
                 +'complete in {} seconds!'.format(time()-t0)
             )
+        print('Total time costs: {}'.format(time()-t_0))
     
     def div_tok_acts_db(self,
                         load_dir_name='',
@@ -556,6 +567,7 @@ class Constructor():
             'BigDivToks',
             (('id', 'TEXT', 'PRIMARY KEY'), ('par1', 'TEXT'))
         )
+        counter = 0
         for fle in raw_files:
             t1=time()
             holder=[]
@@ -567,7 +579,6 @@ class Constructor():
             )
             tokenized = self.CTP.iterate_tokenization(divided)
             print(inden+'\tStarting tokenization and writing')
-            counter=0
             for tok_act in tokenized:
                 name = ('0'*(4+1-len(str(counter)))+str(counter))
                 enc = json.dumps(tok_act)
@@ -624,7 +635,7 @@ class Constructor():
         Accepted 'spec' args:
         raw, norm1, lem1
         '''
-        path = self.dir_struct['Statistics_and_data']
+        path = self.dir_struct['StatData']
         options = {
             'raw' : path.joinpath(dir_name, 'vocab_raw_words'),
             'norm1' : path.joinpath(dir_name, 'vocab_norm1_words'),
@@ -640,7 +651,7 @@ class Constructor():
         Accepted 'spec' args:
         raw, norm1, lem
         '''
-        path = self.dir_struct['Statistics_and_data']
+        path = self.dir_struct['StatData']
         options = {
             'raw' : path.joinpath(dir_name, 'vocab_raw_words'),
             'norm1' : path.joinpath(dir_name, 'vocab_norm1_words'),
@@ -659,7 +670,7 @@ class Constructor():
                                 inden=''):
         #load paths and lem gen
         load_path = (
-            self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+            self.dir_struct['DivTok'].joinpath(load_dir_name)
         )
         all_acts_gen = self.RWT.iterate_pickle_loading(load_path)
         lemmed_acts_gen = self.CTP.iterate_lemmatize_by_dict(
@@ -669,7 +680,7 @@ class Constructor():
         )
         #saves paths
         acts_quants = len(self.RWT.collect_exist_file_paths(load_path))
-        save_dir = self.dir_struct['Normalized_by_{}'.format(par_type)]
+        save_dir = self.dir_struct['Norm1']
         save_dir = save_dir.joinpath(save_dir_name)
         writing_paths = deque(sorted(self.RWT.create_writing_paths(
             0,
@@ -695,14 +706,8 @@ class Constructor():
                                    inden=''):
         t0 = time()
         #Load vocab
-        lem_dict = self.load_vocab(spec='lem', dir_name='2018-05-22')
-        #load paths
-        load_path = (
-            self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
-        )
-        save_path = (
-            self.dir_struct['Normalized_by_parser1'].joinpath(save_dir_name)
-        )
+        lem_dict = self.load_vocab(spec='lem1', dir_name='2018-05-22')
+        lem_keys = set(lem_dict)
         #Initiat DBs
         DB_load = mysqlite.DataBase(
             dir_name='TextProcessing/DivToks/'+load_dir_name,
@@ -716,7 +721,7 @@ class Constructor():
         DB_save.create_tabel(
             'BigNorm1DB',
             (
-                (('id', 'TEXT', 'PRIMARY KEY'), ('par1', 'TEXT'))
+                (('id', 'TEXT', 'PRIMARY KEY'), ('par1', 'TEXT'), ('par2', 'TEXT'))
             )
         )
         acts_gen = DB_load.iterate_row_retr(length=8588, output=1000)
@@ -725,14 +730,24 @@ class Constructor():
             print('Starting new batch!')
             holder = []
             for row in batch:
-                dec = json.loads(row[1])
+                divtoks = row[1]
+                #print('Starting new row!')
+                #t_1 = time()
+                dec = json.loads(divtoks)
+                #print('\tTime: {:4.4f}'.format(time()-t_1))
+                #print('Starting new lem!')
+                #t_2 = time()
                 act = [
-                    self.CTP.lemmatize_by_dict(lem_dict, par, set(lem_dict))
+                    [lem_dict[token] for token in par if token in lem_keys]
                     for par in dec
                 ]
+                #print('\tTime: {:4.4f}'.format(time()-t_2))
+                #print('Starting new enc!')
+                #t_3 = time()
                 enc = json.dumps(act)
-                holder.append((row[0], enc))
-            DB_save.insert_data(holder, col_num=2)
+                #print('\tTime: {:4.4f}'.format(time()-t_3))
+                holder.append((row[0], enc, divtoks))
+            DB_save.insert_data(holder, col_num=3)
             print('Batch was proceed in {:4.5f} seconds'.format(time()-t1))
         print('Total time costs: {:4.5f}'.format(time()-t0))
     
@@ -876,7 +891,7 @@ class Constructor():
                                ):
         #load concls and set mtrx creation finc
         concls_path = (
-            self.dir_struct['Conclusions'].joinpath(concl_dir_name)
+            self.dir_struct['Concls'].joinpath(concl_dir_name)
         )
         concls = self.RWT.iterate_text_loading(concls_path)
         mtrx_creator = self.act_and_concl_to_mtrx(
@@ -887,8 +902,6 @@ class Constructor():
         )
         dct_holder = {}
         for concl in concls:
-            #load acts
-            path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
             ############################
             if intersection and stop_w:
                 concl_prep = self.CTP.full_process(
@@ -961,183 +974,185 @@ class Constructor():
             else:
                 raise TypeError('Wrong params args!')
             #Uncleaned_acts
-            uncl_acts = deque(self.RWT.collect_exist_file_paths(
-                self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
-            ))
+            #uncl_acts = deque(self.RWT.collect_exist_file_paths(
+            #    self.dir_struct['Divided_and_tokenized'].joinpath(load_dir_name)
+            #))
             #load acts
-            path_to_acts = path_to_acts.joinpath(load_dir_name)
+            #path_to_acts = path_to_acts.joinpath(load_dir_name)
+            #load acts
+            #path_to_acts = self.dir_struct['Normalized_by_{}'.format(par_type)]
+            DB_load = mysqlite.DataBase(
+                dir_name='TextProcessing/Norm1/'+load_dir_name,
+                base_name='BigNorm1DB',
+                tb_name=True
+            )
             #print('this is it!', path_to_acts)
-            acts = self.RWT.iterate_pickle_loading(path_to_acts)
+            #acts = self.RWT.iterate_pickle_loading(path_to_acts)
+            acts_gen = DB_load.iterate_row_retr(length=8588, output=1000)
             print('\n', concl[:50], '\n', sep='')
             print(concl_cleaned, '\n', sep='')
             t0 = time()
             holder = []
             #counter = 0
-            for act in acts:
-                uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
-                if act_borders:
-                    act_court = ' '.join(uncl_act[0])
-                    act_name = ' '.join(uncl_act[2])
-                    uncl_act = uncl_act[act_borders[0]:act_borders[1]]
-                    act = act[act_borders[0]:act_borders[1]]
-                    #writer([len(uncl_act)], 'unclean_acts_len', mode='a', verbose=False)
-                uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
-                ############################
-                if intersection and stop_w:
-                    if par_len:
-                        act2 = []
-                        for par in act:
-                            if len(''.join(par)) > par_len:
-                                act2.append(par)
-                            else:
-                                act2.append('')
-                        act = act2
-                    if old_uniq:
-                        act = [
-                            set(self.CTP.remove_stpw_from_list(
-                                par,
-                                stop_w
-                            ))
-                            |
-                            set(self.CTP.intersect_2gr(
-                                par,
-                                stop_w,
-                                verbose=False,
-                                par_type='lst'
-                            ))
-                            for par in act
-                        ]
-                        act = [' '.join(par) for par in act]
-                    else:
-                        act = [
-                                self.CTP.remove_stpw_from_list(
+            for batch in acts_gen:
+                print('Start Batch!')
+                for row in batch:
+                    uncl_act = [
+                        ' '.join(par_lst)
+                        for par_lst in json.loads(row[2])
+                    ]
+                    act = json.loads(row[1])
+                    #print('Acts_extracted')
+                    if intersection and stop_w:
+                        if par_len:
+                            act2 = []
+                            for par in act:
+                                if len(''.join(par)) > par_len:
+                                    act2.append(par)
+                                else:
+                                    act2.append('')
+                            act = act2
+                        if old_uniq:
+                            act = [
+                                set(self.CTP.remove_stpw_from_list(
                                     par,
                                     stop_w
-                                )
-                                +
-                                self.CTP.intersect_2gr(
+                                ))
+                                |
+                                set(self.CTP.intersect_2gr(
                                     par,
                                     stop_w,
                                     verbose=False,
                                     par_type='lst'
-                                )
-                                for par in act
-                            ]
-                        act = [' '.join(par) for par in act]
-                ######################        
-                elif old_bigram == 'join':
-                    if par_len:
-                        act2 = []
-                        for par in act:
-                            if len(''.join(par)) > par_len:
-                                act2.append(par)
-                            else:
-                                act2.append('')
-                        act = act2
-                    if stop_w:
-                        act = [
-                            self.CTP.remove_stpw_from_list(
-                                par,
-                                stop_w
-                            )
-                            for par in act
-                        ]
-                    if rep_ngram_act:
-                        act = [
-                            ' '.join(
-                                par_lst 
-                                +
-                                self.CTP.extract_repetitive_ngrams(
-                                    self.CTP.create_2grams(par_lst),
-                                    verbose=False
-                                )
-                            )
-                            for par_lst in act
-                        ]
-                    else:
-                        act = [
-                            ' '.join(
-                                par_lst + self.CTP.create_2grams(par_lst)
-                            )
-                            for par_lst in act
-                        ]
-                elif old_bigram == 'simple':
-                    if par_len:
-                        act2 = []
-                        for par in act:
-                            if len(''.join(par)) > par_len:
-                                act2.append(par)
-                            else:
-                                act2.append('')
-                        act = act2
-                    if stop_w:
-                        act = [
-                            self.CTP.remove_stpw_from_list(
-                                par,
-                                stop_w
-                            )
-                            for par in act
-                        ]
-                    if rep_ngram_act:
-                        act = [
-                            ' '.join(
-                                self.CTP.extract_repetitive_ngrams(
-                                    self.CTP.create_2grams(par),
-                                    verbose=False
-                                )
-                            )
-                            for par in act
-                        ]
-                    else:
-                        act = [
-                            ' '.join(self.CTP.create_2grams(par))
-                            for par in act
-                        ]
-                elif old_bigram == 'no':
-                    if par_len:
-                        act2 = []
-                        for par in act:
-                            if len(''.join(par)) > par_len:
-                                act2.append(par)
-                            else:
-                                act2.append('')
-                        act = act2
-                    if old_uniq:
-                        act = [
-                                ' '.join(set(
-                                    self.CTP.remove_stpw_from_list(
-                                    par,
-                                    stop_w
-                                )))
-                                for par in act
-                            ]
-                    else:
-                        act = [
-                                ' '.join(self.CTP.remove_stpw_from_list(
-                                    par,
-                                    stop_w
                                 ))
                                 for par in act
                             ]
-                #writer(act, 'act{}'.format(counter), verbose=False)
-                if vector_pop=='mixed':
-                    bigrs = ' '.join(concl_int_bigrs)
-                    data_mtrx = mtrx_creator(act, concl_cleaned, bigrs)
-                else:
-                    data_mtrx = mtrx_creator(act, concl_cleaned)
-                #writer(data_mtrx, 'act_mtrx{}'.format(counter), verbose=False)
-                par_index, cos = self.eval_cos_dist(data_mtrx)
-                #counter+=1
-                #if counter%500 == 0:
-                    #print(counter)
-                if act_borders:
-                    holder.append(
-                        [act_court,
-                        act_name,
-                        cos,
-                        uncl_act[par_index-1]] #act[par_index-1]]
-                    )
-                else:
+                            act = [' '.join(par) for par in act]
+                        else:
+                            act = [
+                                    self.CTP.remove_stpw_from_list(
+                                        par,
+                                        stop_w
+                                    )
+                                    +
+                                    self.CTP.intersect_2gr(
+                                        par,
+                                        stop_w,
+                                        verbose=False,
+                                        par_type='lst'
+                                    )
+                                    for par in act
+                                ]
+                            act = [' '.join(par) for par in act]
+                    ######################        
+                    elif old_bigram == 'join':
+                        if par_len:
+                            act2 = []
+                            for par in act:
+                                if len(''.join(par)) > par_len:
+                                    act2.append(par)
+                                else:
+                                    act2.append('')
+                            act = act2
+                        if stop_w:
+                            act = [
+                                self.CTP.remove_stpw_from_list(
+                                    par,
+                                    stop_w
+                                )
+                                for par in act
+                            ]
+                        if rep_ngram_act:
+                            act = [
+                                ' '.join(
+                                    par_lst 
+                                    +
+                                    self.CTP.extract_repetitive_ngrams(
+                                        self.CTP.create_2grams(par_lst),
+                                        verbose=False
+                                    )
+                                )
+                                for par_lst in act
+                            ]
+                        else:
+                            act = [
+                                ' '.join(
+                                    par_lst + self.CTP.create_2grams(par_lst)
+                                )
+                                for par_lst in act
+                            ]
+                    elif old_bigram == 'simple':
+                        if par_len:
+                            act2 = []
+                            for par in act:
+                                if len(''.join(par)) > par_len:
+                                    act2.append(par)
+                                else:
+                                    act2.append('')
+                            act = act2
+                        if stop_w:
+                            act = [
+                                self.CTP.remove_stpw_from_list(
+                                    par,
+                                    stop_w
+                                )
+                                for par in act
+                            ]
+                        if rep_ngram_act:
+                            act = [
+                                ' '.join(
+                                    self.CTP.extract_repetitive_ngrams(
+                                        self.CTP.create_2grams(par),
+                                        verbose=False
+                                    )
+                                )
+                                for par in act
+                            ]
+                        else:
+                            act = [
+                                ' '.join(self.CTP.create_2grams(par))
+                                for par in act
+                            ]
+                    elif old_bigram == 'no':
+                        if par_len:
+                            act2 = []
+                            for par in act:
+                                if len(''.join(par)) > par_len:
+                                    act2.append(par)
+                                else:
+                                    act2.append('')
+                            act = act2
+                        if old_uniq:
+                            act = [
+                                    ' '.join(set(
+                                        self.CTP.remove_stpw_from_list(
+                                        par,
+                                        stop_w
+                                    )))
+                                    for par in act
+                                ]
+                        else:
+                            act = [
+                                    ' '.join(self.CTP.remove_stpw_from_list(
+                                        par,
+                                        stop_w
+                                    ))
+                                    for par in act
+                                ]
+                    if vector_pop=='mixed':
+                        bigrs = ' '.join(concl_int_bigrs)
+                        data_mtrx = mtrx_creator(act, concl_cleaned, bigrs)
+                    else:
+                        data_mtrx = mtrx_creator(act, concl_cleaned)
+                    par_index, cos = self.eval_cos_dist(data_mtrx)
+                    #if act_borders:
+                    #    holder.append(
+                    #        [act_court,
+                    #        act_name,
+                    #        cos,
+                    #        uncl_act[par_index-1]] #act[par_index-1]]
+                    #    )
+                    #else:
                     holder.append(
                         [uncl_act[0],
                         uncl_act[2],
@@ -1157,14 +1172,6 @@ class Constructor():
                 'Time in seconds: {}'.format(t2-t1),
                 sep=''
             )
-            #name = concl[:40]
-            #self.table_to_csv(
-            #    holder,
-            #    dir_name=save_dir_name,
-            #    header=('Суд','Реквизиты','Косинус', 'Абзац'),
-            #    zero_string = concl,
-            #    file_name=FILE_NAMES[name]+add_file_name
-            #)
             if old_uniq:
                 dct_holder[SHORT_FILE_NAMES[concl]] = holder
             else:
@@ -1186,6 +1193,33 @@ class Constructor():
                     print('Continue execution')
         print('Execution ended')
         return dct_holder
+
+
+
+
+            #for act in acts:
+            #    uncl_act = self.RWT.load_pickle(uncl_acts.popleft())
+            #    if act_borders:
+            #        act_court = ' '.join(uncl_act[0])
+            #        act_name = ' '.join(uncl_act[2])
+            #        uncl_act = uncl_act[act_borders[0]:act_borders[1]]
+            #        act = act[act_borders[0]:act_borders[1]]
+                    #writer([len(uncl_act)], 'unclean_acts_len', mode='a', verbose=False)
+            #    uncl_act = [' '.join(par_lst) for par_lst in uncl_act]
+                ############################
+                #writer(act, 'act{}'.format(counter), verbose=False)
+                #writer(data_mtrx, 'act_mtrx{}'.format(counter), verbose=False)
+                #counter+=1
+                #if counter%500 == 0:
+                    #print(counter)
+            #name = concl[:40]
+            #self.table_to_csv(
+            #    holder,
+            #    dir_name=save_dir_name,
+            #    header=('Суд','Реквизиты','Косинус', 'Абзац'),
+            #    zero_string = concl,
+            #    file_name=FILE_NAMES[name]+add_file_name
+            #)
     
     def table_to_csv(self,
                      table,

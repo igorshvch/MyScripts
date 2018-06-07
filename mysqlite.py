@@ -178,7 +178,8 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         self.cur.execute(
-            'CREATE TABLE {tn} ({cs})'.format(tn=table_name, cs=col_struct)
+            'CREATE TABLE IF NOT EXISTS {tn} ({cs})'\
+            .format(tn=table_name, cs=col_struct)
         )
         if verbose:
             print(
