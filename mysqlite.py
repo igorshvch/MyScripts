@@ -124,10 +124,12 @@ class DataBase():
         return rows
     
     def iterate_row_retr(self,
+                         length=543434,
                          output=50000,
                          first_row=0,
-                         only_par_col=False,
-                         row_voc=None):
+                         only_par_col=False#,
+                         #row_voc=None
+                         ):
         def inner_func(num_of_rows, inner_fr, only_par_col=only_par_col):
             if not self.cur:
                 self.open(**self.path)
@@ -138,40 +140,20 @@ class DataBase():
                 )
             elif only_par_col==False:
                 self.cur.execute(
-                    'SELECT id, par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                    'SELECT * FROM {tn} LIMIT {nr} OFFSET {fr}'\
                     .format(tn=self.table_name,nr=num_of_rows,fr=inner_fr)
                 )
             rows = self.cur.fetchall()
             return rows
-        if row_voc:
-            offset = 0
-            plus1 = 0
-            plus2 = output-1
-            st_plus1 = ('0'*(6+1-len(str(plus1)))+str(plus1))
-            st_plus2 = ('0'*(6+1-len(str(plus2)))+str(plus2))
-            num_of_r = row_voc[st_plus2]
-            while plus2 < 570000:
-                batch = inner_func(
-                    num_of_rows = num_of_r,
-                    inner_fr = offset)
-                plus1 += output
-                plus2 += output
-                print(plus1, plus2)
-                st_plus1 = ('0'*(6+1-len(str(plus1)))+str(plus1))
-                st_plus2 = ('0'*(6+1-len(str(plus2)))+str(plus2))
-                offset = row_voc[st_plus1]
-                num_of_r = row_voc.get(st_plus2, row_voc['0543433']) - offset
-                yield batch
-        else:
-            counter = first_row
-            base = (543434-first_row)//output + 1
-            while base:
-                batch = inner_func(
-                    num_of_rows = output,
-                    inner_fr = counter)
-                counter += output
-                base-=1
-                yield batch
+        counter = first_row
+        base = (length-first_row)//output + 1
+        while base:
+            batch = inner_func(
+                num_of_rows = output,
+                inner_fr = counter)
+            counter += output
+            base-=1
+            yield batch
     
     def retrive_tabel_name(self):
         if not self.cur:
@@ -207,7 +189,7 @@ class DataBase():
         self.tables.add(table_name)
         self.conn.commit()
     
-    def insert_data(self, data):
+    def insert_data(self, data, col_num=2):
         if not self.cur:
             self.open(**self.path)
         if len(data) == 1:
@@ -217,9 +199,11 @@ class DataBase():
             )
             print('Data was inserted!')
         else:
+            q = '?,'*col_num
+            q='('+q[:-1]+')'
             self.cur.executemany(
-                'INSERT INTO {tn} VALUES (?,?)'\
-                .format(tn=self.table_name), data
+                'INSERT INTO {tn} VALUES {cols}'\
+                .format(tn=self.table_name, cols=q), data
             )
         self.conn.commit()
     

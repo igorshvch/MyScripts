@@ -453,10 +453,10 @@ class CustomTextProcessor():
         return d
     
     def position_search_pars_db(self, words):
-        d = {word:set() for word in words}
+        d = {word:[] for word in words}
         counter = 0
         for word in words:
-            d[word].add(counter)
+            d[word].append(counter)
             counter+=1
         d['total'] = len(words)
         for word in words:
@@ -964,35 +964,53 @@ class DivTokLem():
                 base_name='Norm1DB',
                 tb_name=True
         )
+        DB_dpars = mysqlite.DataBase(
+                dir_name='TextProcessing/DivTokPars/'+load_dir_name,
+                base_name='DivDB',
+                tb_name=True
+        )
         DB_save = mysqlite.DataBase(
                 dir_name='TextProcessing/ParsInfo/'+save_dir_name,
                 base_name='IndexDB'
         )
         DB_save.create_tabel(
                 'ParsInfo',
-                (('id', 'TEXT', 'PRIMARY KEY'), ('par', 'TEXT'))
+                (
+                    ('id', 'TEXT', 'PRIMARY KEY'),
+                    ('par1', 'TEXT'),
+                    ('par2', 'TEXT'),
+                    ('par3', 'TEXT'),
+                    ('par4', 'TEXT')
+                )
         )
         pars_gen = DB_load.iterate_row_retr()
+        pars_gen_div = DB_dpars.iterate_row_retr()
         counter=0
         t0 = time()
         t1 = time()
         print(inden+'Start indexing and writing')
-        for batch in pars_gen:
+        for batch, batch_div in zip(pars_gen, pars_gen_div):
             holder = []
-            for par in batch:
-                keys=[]
+            for par, div_par in zip(batch, batch_div):
+                #keys=[]
                 par = par[1].split('#')
                 act_info, par = par[:2], par[2:]
                 name = ('0'*(6+1-len(str(counter)))+str(counter))
                 index = self.CTP.position_search_pars_db(par)
-                for item in index.items():
-                    key, info = item
-                    key = name+'#'+key
-                    holder.append((key, str(info)))
-                    keys.append(key)
-                all_keys = '|'.join(keys)
-                holder.append((name+'#req', act_info[1]))
-                holder.append((name+'#court', act_info[0]))
+                #index['req'] = act_info.pop() #
+                #index['court'] = act_info.pop() #
+                enc = json.dumps(index)
+                holder.append(
+                    (name, '#'.join(act_info), enc, '#'.join(par), div_par[1])
+                )
+                #for item in index.items():
+                #    key, info = item
+                #    key = name+'#'+key
+                #    holder.append((key, str(info)))
+                #    keys.append(key)
+                #all_keys = '|'.join(keys)
+                #holder.append((name+'#req', act_info[1]))
+                #holder.append((name+'#court', act_info[0]))
                 if counter % 50000 == 0:
                     print(
                         '\tAt this moment '
@@ -1002,8 +1020,8 @@ class DivTokLem():
                     )
                     t1=time()
                 counter+=1
-                holder.append((name+'#all_keys', all_keys))
-            DB_save.insert_data(holder)
+                #holder.append((name+'#all_keys', all_keys))
+            DB_save.insert_data(holder, col_num=5)
         DB_load.close()
         DB_save.close()
         print(
@@ -1145,15 +1163,16 @@ class Scorer():
         return dct_cya
     
     def process_concl_pars_db(self,
-                              bdh = None,
+                              #bdh = None,
                               auto_mode=False,
                               concl_dir_name='',
-                              npars_dir_name='',
+                              #npars_dir_name='',
                               info_dir_name='',
-                              stop_w=None,
+                              #stop_w=None,
                               doc_len=None,
-                              output=50000,
-                              end=True):
+                              output=50000#,
+                              #end=True
+                              ):
         self.D=doc_len
         ###Paths
         path_to_concl = (
@@ -1162,84 +1181,47 @@ class Scorer():
         path_to_info = (
                 self.DM.dir_struct['ParsInfo'].joinpath(info_dir_name)
         )
-        path_to_npars = (
-            self.DM.dir_struct['Norm1Pars'].joinpath(npars_dir_name)
-        )
-        #DB connection and concls loading
         DB_load_info = mysqlite.DataBase(
             raw_path = path_to_info,
             base_name = 'IndexDB',
             tb_name = True
         )
-        DB_load_npars = mysqlite.DataBase(
-            raw_path = path_to_npars,
-            base_name = 'Norm1DB',
-            tb_name = True
-        )
-        #form index_gen
-        t_0 = time()
-        print('Start index base\'s keys retrival')
-        keys = DB_load_info.cur.execute('SELECT rowid FROM ParsInfo WHERE id LIKE "%#all_keys"')
-        keys = keys.fetchall()
-        keys = [i[0] for  i in keys]
-        row_voc = {}
-        for rv_count in range(len(keys)):
-            rv_key = ('0'*(6+1-len(str(rv_count)))+str(rv_count))
-            row_voc[rv_key] = keys[rv_count]
-        print('Retrivel ended in {} seconds'.format(time()-t_0))
-        index_gen = DB_load_info.iterate_row_retr(output=output,  row_voc=row_voc)
-        if end:
-            return row_voc
-        #################
         concls = self.DM.iterate_text_loading(path_to_concl)
         vocab_nw = self.DTL.load_vocab(spec='norm1', dir_name='2018-05-22')
+        stop_w = self.DTL.load_file(
+            'C:/Users/EA-ShevchenkoIS/TextProcessing/StatData/custom_stpw'
+            )
+        print('This is stop_w length:', len(stop_w))
         dct_cya={}
-        t0=time()
+        if auto_mode:
+            t_zero = time()
         for concl in concls:
             print(concl[:40])
             concl_prep = self.CTP.full_process(concl, stop_w=stop_w)
             print(' '.join(concl_prep)+'\n')
-            holder =[] #holder={}
-            ###processing
+            holder =[]
+            t0=time()
             t1=time()
-            #gen_info = DB_load_info.iterate_row_retr(output=20000)
             print('Starting corpus scoring!')
-            output_base1 = 0
-            output_base2 = output
             counter = 0
+            index_gen = DB_load_info.iterate_row_retr(output=output)
             for batch in index_gen:
-                print('New batch!')
-                act_keys = [
-                    ('0'*(6+1-len(str(i)))+str(i))
-                    for i in range(output_base1, output_base2)
-                ]
-                output_base1 += output
-                output_base2 += output
-                print(
-                    len(act_keys), act_keys[0], act_keys[-1], output_base1, output_base2
-                )
-                batch_dct = dict(batch)
-                if bdh:
-                    bdh.append(batch_dct)
-                for act_key in act_keys:
-                    #print(act_key)
-                    npar = DB_load_npars[act_key][1].split('#')
-                    court, req, npar = npar[0], npar[1], npar[2:]
-                    info_dct = {}
-                    inner_keys = batch_dct[act_key+'#all_keys'].split('|')
-                    for inner_key in inner_keys:
-                        info_dct[inner_key[8:]] = eval(batch_dct[inner_key])
-                    sc = self.score(concl_prep, npar, info_dct, vocab_nw)
-                    holder.append((court, req, sc, npar))
-                    counter+=1
-                    if counter % 25000 == 0:
+                for row in batch:
+                    divp = row[4]
+                    npar = row[3].split('#')
+                    info = json.loads(row[2])
+                    court, req = row[1].split('#')
+                    sc = self.score(concl_prep, npar, info, vocab_nw)
+                    holder.append((court, req, sc, divp.replace('#', ' ')))
+                    if counter % 50000 == 0:
                         print(
                             '\tAt this moment '
-                            +'{} pars were scored. {:8.4f}'.format(
+                            +'{:6} pars were scored. {:8.4f}'.format(
                                 counter, (time()-t1)
                             )
                         )
                         t1=time()
+                    counter+=1
             print('Corpus was scored in {} seconds.'.format(time()-t0))
             print('Starting pars sorting!')
             t2=time()
@@ -1279,19 +1261,9 @@ class Scorer():
                     print('Continue execution')
         print('\nDB connections were terminated!\n')
         print('Execution ended')
+        print('Total time costs: {}'.format(time()-t_zero))
         return dct_cya
 
-
-
-
-
-
-
-
-                
-
-
-    
     def process_one_phrase_acts(self,
                                 phrase,
                                 acts_dir,
