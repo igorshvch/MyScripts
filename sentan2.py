@@ -890,10 +890,10 @@ class Constructor():
                                act_borders=None
                                ):
         #load concls and set mtrx creation finc
-        concls_path = (
-            self.dir_struct['Concls'].joinpath(concl_dir_name)
+        path_to_concl = (
+            self.dir_struct['Concls'].joinpath(concl_dir_name, 'concls.dct')
         )
-        concls = self.RWT.iterate_text_loading(concls_path)
+        concls = self.RWT.load_pickle(str(path_to_concl))
         mtrx_creator = self.act_and_concl_to_mtrx(
             vector_pop=vector_pop,
             vector_model=vector_model,
@@ -1014,10 +1014,9 @@ class Constructor():
                             act = act2
                         if old_uniq:
                             act = [
-                                set(self.CTP.remove_stpw_from_list(
-                                    par,
-                                    stop_w
-                                ))
+                                set(
+                                    [w for w in par if w not in stop_w]
+                                )
                                 |
                                 set(self.CTP.intersect_2gr(
                                     par,
@@ -1030,10 +1029,7 @@ class Constructor():
                             act = [' '.join(par) for par in act]
                         else:
                             act = [
-                                    self.CTP.remove_stpw_from_list(
-                                        par,
-                                        stop_w
-                                    )
+                                    [w for w in par if w not in stop_w]
                                     +
                                     self.CTP.intersect_2gr(
                                         par,
@@ -1056,10 +1052,7 @@ class Constructor():
                             act = act2
                         if stop_w:
                             act = [
-                                self.CTP.remove_stpw_from_list(
-                                    par,
-                                    stop_w
-                                )
+                                [w for w in par if w not in stop_w]
                                 for par in act
                             ]
                         if rep_ngram_act:
@@ -1092,10 +1085,7 @@ class Constructor():
                             act = act2
                         if stop_w:
                             act = [
-                                self.CTP.remove_stpw_from_list(
-                                    par,
-                                    stop_w
-                                )
+                                [w for w in par if w not in stop_w]
                                 for par in act
                             ]
                         if rep_ngram_act:
@@ -1125,18 +1115,15 @@ class Constructor():
                         if old_uniq:
                             act = [
                                     ' '.join(set(
-                                        self.CTP.remove_stpw_from_list(
-                                        par,
-                                        stop_w
-                                    )))
+                                        [w for w in par if w not in stop_w]
+                                    ))
                                     for par in act
                                 ]
                         else:
                             act = [
-                                    ' '.join(self.CTP.remove_stpw_from_list(
-                                        par,
-                                        stop_w
-                                    ))
+                                    ' '.join(
+                                        [w for w in par if w not in stop_w]
+                                    )
                                     for par in act
                                 ]
                     if vector_pop=='mixed':
@@ -1173,9 +1160,9 @@ class Constructor():
                 sep=''
             )
             if old_uniq:
-                dct_holder[SHORT_FILE_NAMES[concl]] = holder
+                dct_holder[concls[concl]] = holder
             else:
-                dct_holder[FILE_NAMES[concl[:180]]] = holder
+                dct_holder[concls[concl]] = holder
             if not auto_mode:
                 breaker = None
                 while breaker != '1' and breaker != '0':

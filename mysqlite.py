@@ -79,7 +79,7 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         self.cur.execute(
-            'SELECT id, par FROM {tb} WHERE id=="{txt}"'\
+            'SELECT * FROM {tb} WHERE id=="{txt}"'\
             .format(tb = self.table_name, txt = key)
         )
         val = self.cur.fetchone()
