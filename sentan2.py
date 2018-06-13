@@ -44,13 +44,17 @@ PATTERN_ACT_CLEAN2 = (
     'КонсультантПлюс.+?\n.+?\n'
 )
 PATTERN_ACT_CLEAN3 = (
-    'Рубрикатор ФАС \(АСЗО\).*?Текст документа'
+    'Рубрикатор ФАС \(АСЗО\).*?Текст документа\n'
 )
 PATTERN_ACT_SEP1 = (
     '\n\n\n-{66}\n\n\n'
 )
 PATTERN_ACT_SEP2 = (
     'Документ предоставлен КонсультантПлюс'
+)
+PATTERN_PASS = (
+    'ОБЗОР\nСУДЕБНОЙ ПРАКТИКИ ПО ДЕЛАМ,'
+    '+ РАССМОТРЕННЫМ\nАРБИТРАЖНЫМ СУДОМ УРАЛЬСКОГО ОКРУГА'
 )
 
 FILE_NAMES = {
@@ -133,20 +137,26 @@ class ReadWriteTool():
         inner_func(top_dir, suffix)
         return sorted(holder)
     
-    def map_concl_to_num(self, path_holder):
+    def map_num_to_concl(self, path_holder, lngth=None):
         dct = {}
         for p in path_holder:
             with open(str(p), mode='r') as file:
                 text = file.read()
-            dct[p.stem] = text[:40]
+            if lngth:
+                dct[p.stem] = text[:lngth]
+            else:
+                dct[p.stem] = text
         return dct
     
-    def map_num_to_concl(self, path_holder):
+    def map_concl_to_num(self, path_holder, lngth=None):
         dct = {}
         for p in path_holder:
             with open(str(p), mode='r') as file:
                 text = file.read()
-            dct[text[:40]] = p.stem
+            if lngth:
+                dct[text[:lngth]] = p.stem
+            else:
+                dct[text] = p.stem
         return dct
 
     def load_text(self, path):
@@ -285,6 +295,8 @@ class CustomTextProcessor():
         Return generator object
         '''
         for text in text_gen:
+            if re.match(PATTERN_PASS, text):
+                continue
             text_holder=[]
             pars_list = text.split('\n')
             for par in pars_list:
@@ -988,7 +1000,7 @@ class Constructor():
             )
             #print('this is it!', path_to_acts)
             #acts = self.RWT.iterate_pickle_loading(path_to_acts)
-            acts_gen = DB_load.iterate_row_retr(length=8588, output=1000)
+            acts_gen = DB_load.iterate_row_retr(length=8588, output=2000)
             print('\n', concl[:50], '\n', sep='')
             print(concl_cleaned, '\n', sep='')
             t0 = time()

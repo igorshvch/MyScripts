@@ -7,7 +7,7 @@ class DataBase():
     options = {
             (1,1,1) : (
                 lambda x,y,z: pthl.Path(x).joinpath\
-                (y, y).with_suffix('.db')
+                (y, z).with_suffix('.db')
             ),
             (1,1,0) : (
                 lambda x,y,z: pthl.Path(x).joinpath\
@@ -43,7 +43,8 @@ class DataBase():
                  raw_path=None,
                  dir_name=None,
                  base_name=None,
-                 tb_name=False):
+                 tb_name=False,
+                 mode='rowid'):
         self.conn = None 
         self.cur = None
         self.tables = set()
@@ -58,6 +59,7 @@ class DataBase():
         if tb_name:
             self.table_name = self.retrive_tabel_name()
             self.tables.add(self.table_name)
+        self.mode = mode
     
     def __call__(self,
                  raw_path=None,
@@ -78,11 +80,18 @@ class DataBase():
     def __getitem__(self, key):
         if not self.cur:
             self.open(**self.path)
-        self.cur.execute(
-            'SELECT * FROM {tb} WHERE id=="{txt}"'\
-            .format(tb = self.table_name, txt = key)
-        )
-        val = self.cur.fetchone()
+        if self.mode == 'id':
+            self.cur.execute(
+                'SELECT * FROM {tb} WHERE id=="{txt}"'\
+                .format(tb = self.table_name, txt = key)
+            )
+            val = self.cur.fetchone()
+        elif self.mode == 'rowid':
+            self.cur.execute(
+                'SELECT * FROM {tb} WHERE rowid=="{txt}"'\
+                .format(tb = self.table_name, txt = key)
+            )
+            val = self.cur.fetchone()
         return val
     
     def open(self,
@@ -117,7 +126,7 @@ class DataBase():
             )
         else:
             self.cur.execute(
-                'SELECT id, par FROM {tn} LIMIT {nr} OFFSET {fr}'\
+                'SELECT * FROM {tn} LIMIT {nr} OFFSET {fr}'\
                 .format(tn=self.table_name,nr=num_of_rows,fr=first_row)
             )
         rows = self.cur.fetchall()
@@ -127,8 +136,7 @@ class DataBase():
                          length=543434,
                          output=50000,
                          first_row=0,
-                         only_par_col=False#,
-                         #row_voc=None
+                         only_par_col=False
                          ):
         def inner_func(num_of_rows, inner_fr, only_par_col=only_par_col):
             if not self.cur:
