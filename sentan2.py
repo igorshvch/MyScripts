@@ -7,7 +7,7 @@ import pickle
 import json
 import mysqlite
 import pathlib as pthl
-from time import time, strftime
+from time import time
 from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from collections import Counter, deque
