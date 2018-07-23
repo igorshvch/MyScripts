@@ -7,7 +7,7 @@ import pickle
 import shelve
 import json
 import mysqlite
-#import operator holder = sorted(holder, key=operator.itemgetter(0,1,2))
+#import operator # holder = sorted(holder, key=operator.itemgetter(0,1,2))
 import pathlib as pthl
 from time import time
 #from scipy.spatial.distance import cosine as sp_cosine
