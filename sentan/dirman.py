@@ -1,6 +1,5 @@
 import pathlib as pthl
 
-GLOB_ENC = 'cp1251'
 __version__ = 0.1
 
 DIR_STRUCT = {
@@ -49,6 +48,8 @@ if __name__ == "__main__":
             print('Not implemented!')
         elif sys.argv[1] == '-create':
             create_dirs(DIR_STRUCT)
+        elif sys.argv[1] == '-create_sd':
+            create_dirs(DIR_STRUCT, sub_dir=sys.argv[2])
         else:
             print('Not implemented!')
     except IndexError:

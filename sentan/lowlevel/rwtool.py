@@ -5,6 +5,7 @@ from time import time
 GLOB_ENC = 'cp1251'
 __version__ = 0.1
 
+###Content=====================================================================
 def collect_exist_file_paths(top_dir, suffix=''):
     holder = []
     def inner_func(top_dir, suffix):
@@ -56,6 +57,11 @@ def write_pickle(py_obj, path):
         pickle.dump(py_obj,
                     file_name,
                     protocol=pickle.HIGHEST_PROTOCOL)
+
+def save_object(py_obj, file_name, full_path):
+    path = pthl.Path()
+    path = path.joinpath(full_path, file_name)
+    write_pickle(py_obj, path)
         
 def load_pickle(path):
     import pickle

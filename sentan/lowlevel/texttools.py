@@ -3,6 +3,18 @@ from time import time
 
 __version__ = 0.1
 
+class DataStore():
+    '''
+    Storage for different text information units with arbitrary structure
+    '''
+    def __init__(self):
+        self.vocab = Counter()
+    
+    def words_count(self, act):
+        voc = self.vocab
+        for par in act:
+            voc.update(par)
+
 def words_count(acts_gen):
         t0 = time()
         vocab = Counter()
