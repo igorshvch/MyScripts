@@ -20,7 +20,7 @@ PAR_TYPE = 'parser1'
 PARSER = parser_options[PAR_TYPE]
 
 ###Content=====================================================================
-class DataStore():
+class ParsDataStore():
     '''
     Storage for different text information units with arbitrary structure
     '''
@@ -56,6 +56,7 @@ def lemmatize(tokens_list):
 
 def change_parser():
     global PAR_TYPE
+    global PARSER
     if PAR_TYPE == 'parser1':
         PAR_TYPE = 'parser2'
         PARSER = parser_options[PAR_TYPE]

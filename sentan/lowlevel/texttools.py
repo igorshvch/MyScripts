@@ -35,9 +35,11 @@ def collect_all_words(act):
 def create_bigrams(par):
     holder=[]
     lp = len(par)
-    assert lp > 1
-    for i in range(1, lp, 1):
-        holder.append('#'.join((par[i-1], par[i])))
+    if lp>1:
+        for i in range(1, lp, 1):
+            holder.append('#'.join((par[i-1], par[i])))
+    else:
+        pass
     return holder
     
 def position_search(words):

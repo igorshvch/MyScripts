@@ -1,19 +1,25 @@
+#built-in modules
 import json
 import re
+from datetime import datetime as dt
 from time import time
+#my modules
+import sentan.lowlevel.mypars as mypars
 from sentan import mysqlite
 from sentan.dirman import DIR_STRUCT
+from sentan.lowlevel import textsep
+from sentan.lowlevel.texttools import create_bigrams as create_bigrams
 from sentan.lowlevel.rwtool import (
     collect_exist_file_paths, load_text, save_object, load_pickle
 )
-from sentan.lowlevel.mypars import DataStore, tokenize, lemmatize
-from sentan.lowlevel import textsep
-from writer import writer
+
+#from writer import writer
 
 __version__ = 0.1
 
 ###Content=====================================================================
-DataStore = DataStore()
+DataStore = mypars.ParsDataStore()
+TOTAL_ACTS = None
 
 def raw_files_to_db(load_dir_name='',
                     sep_type=textsep.SEP_TYPE,
@@ -21,6 +27,7 @@ def raw_files_to_db(load_dir_name='',
                     DS=DataStore):
     t0=time()
     PATTERN_PASS = textsep.PATTERN_PASS
+    tokenize = mypars.tokenize
     #Initiate concls loading:
     path = DIR_STRUCT['RawText'].joinpath(load_dir_name)
     raw_files = (
@@ -42,7 +49,7 @@ def raw_files_to_db(load_dir_name='',
         )
     )
     #Start acts separation
-    counter = 1
+    counter = 0
     for fle in raw_files:
         t1=time()
         holder=[]
@@ -57,7 +64,9 @@ def raw_files_to_db(load_dir_name='',
         for act in divided:
             if re.match(PATTERN_PASS, act):
                 continue
+            counter+=1
             splitted = act.split('\n')
+            splitted = [par for par in splitted if par]
             splitted2 = [tokenize(row) for row in splitted if row] #re.split('\W', row)
             DS.words_count(splitted2)
             holder.append(
@@ -68,64 +77,82 @@ def raw_files_to_db(load_dir_name='',
                     '\n'.join(splitted)
                 )
             )
-            counter+=1
         DB_save.insert_data(holder, col_num=4)
         print(
             inden+'\tRaw text processing '
             +'complete in {:4.5f} seconds!'.format(time()-t1)
         )
+    global TOTAL_ACTS
+    TOTAL_ACTS = counter
     print(inden+'Total time costs: {}'.format(time()-t0))
     DS.create_lem_map()
     save_object(DS.lem_map,
-                'lem_map',
+                ('lem_map_' + str(dt.date(dt.now()))),
                 r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData')
 
-def 
-
-
-def div_tok_acts_db(load_dir_name='',
-                    save_dir_name='',
-                    sep_type=textsep.SEP_TYPE,
-                    inden=''):
-    t0=time()
-    #Initiate concls loading:
-    path = DIR_STRUCT['RawText'].joinpath(load_dir_name)
-    raw_files = (
-        load_text(p) for p
-        in collect_exist_file_paths(top_dir=path, suffix='.txt')
+def make_tokens_and_lems(lem_dict_name='', inden=''):
+    #Initialise local vars
+    t0 = time()
+    global TOTAL_ACTS
+    TA = TOTAL_ACTS
+    OUTPUT = TA//10 if TA > 10 else TA//2
+    tokenize = mypars.tokenize
+    cr2gr = create_bigrams
+    lem_dict = load_pickle(str(DIR_STRUCT['StatData'].joinpath(lem_dict_name)))
+    #Initiate DB connection:
+    DB_load = mysqlite.DataBase(
+        dir_name='TextProcessing/DivActs/',
+        base_name='DivActs',
+        tb_name=True
     )
-    #Initiate DB:
     DB_save = mysqlite.DataBase(
-        dir_name='TextProcessing/DivToks/'+save_dir_name,
-        base_name='BigDivDB'
+        dir_name='TextProcessing/ToksNorms/',
+        base_name='ToksNorms'
     )
     DB_save.create_tabel(
-        'BigDivToks',
-        (('id', 'TEXT', 'PRIMARY KEY'), ('par1', 'TEXT'))
+        'ToksNorms',
+        (
+            ('id', 'INTEGER', 'PRIMARY KEY'),
+            ('COURT', 'TEXT'),
+            ('REQ', 'TEXT'),
+            ('DIV', 'TEXT'),
+            ('LEM', 'TEXT'),
+            ('BIGRAMS', 'TEXT')
+        )
     )
-    counter = 0
-    for fle in raw_files:
-        t1=time()
-        holder=[]
-        print(inden+'Starting new file processing!')
-        cleaned = textsep.court_decisions_cleaner(fle)
-        divided = textsep.court_decisions_separator(
-            cleaned,
-            sep_type=sep_type
-        )
-        tokenized = [1,2,3]#self.CTP.iterate_tokenization(divided)
-        print(inden+'\tStarting tokenization and writing')
-        for tok_act in tokenized:
-            name = ('0'*(4+1-len(str(counter)))+str(counter))
-            enc = json.dumps(tok_act)
-            holder.append((name, enc))
-            counter+=1
-        DB_save.insert_data(holder, col_num=2)
-        print(
-            inden+'\tTokenization and writing '
-            +'complete in {:4.5f} seconds!'.format(time()-t1)
-        )
-    print('Total time costs: {}'.format(time()-t0))
+    #Start division and lemmatization
+    acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
+    for batch in acts_gen:
+        t1 = time()
+        holder = []
+        print(inden+'\tStarting new batch! {:4.5f}'.format(time()-t0))
+        for row in batch:
+            idn, court, req, act = row
+            tokens_by_par = [tokenize(par) for par in act.split('\n')]
+            lems_by_par = [
+                [lem_dict[word] for word in par] for par in tokens_by_par
+            ]
+            bigrams = [cr2gr(par) for par in lems_by_par]
+            holder.append(
+                (
+                    idn,
+                    court,
+                    req,
+                    '\n'.join(
+                        ['='.join(par) for par in tokens_by_par if len(par)>1]
+                    ),
+                    '\n'.join(
+                        ['='.join(par) for par in lems_by_par if len(par)>1]
+                    ),
+                    '\n'.join(['='.join(par) for par in bigrams if len(par)>1]
+                    )
+                )
+            )
+        DB_save.insert_data(holder, col_num=6)
+        print(inden+'\tBatch was proceed in {:4.5f} seconds'.format(time()-t1))
+    print(inden+'Total time costs: {}'.format(time()-t0))
+
+
 
 ###Testing=====================================================================
 if __name__ == '__main__':

@@ -5,15 +5,11 @@ __version__ = 0.1
 DIR_STRUCT = {
     'MainRoot': (pthl.Path().home().joinpath('TextProcessing')),
     'RawText': (pthl.Path().home().joinpath('TextProcessing','RawText')),
-    'DivToks': (pthl.Path().home().joinpath('TextProcessing','DivToks')),
-    'DivTokPars': (pthl.Path().home().joinpath('TextProcessing','DivTokPars')),
-    'Norm1': (pthl.Path().home().joinpath('TextProcessing','Norm1')),
-    'Norm1Pars': (pthl.Path().home().joinpath('TextProcessing','Norm1Pars')),
     'Concls': (pthl.Path().home().joinpath('TextProcessing', 'Conclusions')),
     'StatData': (pthl.Path().home().joinpath('TextProcessing', 'StatData')),
     'Results': (pthl.Path().home().joinpath('TextProcessing', 'Results')),
     'DivActs': (pthl.Path().home().joinpath('TextProcessing', 'DivActs')),
-    'ActsInfo': (pthl.Path().home().joinpath('TextProcessing', 'ActsInfo')),
+    'ToksNorms':(pthl.Path().home().joinpath('TextProcessing', 'ToksNorms')),
     'ParsInfo': (pthl.Path().home().joinpath('TextProcessing', 'ParsInfo'))
 }
 
