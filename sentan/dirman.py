@@ -9,7 +9,7 @@ DIR_STRUCT = {
     'StatData': (pthl.Path().home().joinpath('TextProcessing', 'StatData')),
     'Results': (pthl.Path().home().joinpath('TextProcessing', 'Results')),
     'DivActs': (pthl.Path().home().joinpath('TextProcessing', 'DivActs')),
-    'ToksNorms':(pthl.Path().home().joinpath('TextProcessing', 'ToksNorms')),
+    'TNBI':(pthl.Path().home().joinpath('TextProcessing', 'TNBI')),
     'ParsInfo': (pthl.Path().home().joinpath('TextProcessing', 'ParsInfo'))
 }
 
