@@ -16,8 +16,6 @@ from sentan.lowlevel.rwtool import (
     collect_exist_file_paths, load_text, save_object, load_pickle
 )
 
-#from writer import writer
-
 __version__ = 0.1
 
 ###Content=====================================================================
@@ -126,6 +124,7 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
             ('id', 'INTEGER', 'PRIMARY KEY'),
             ('COURT', 'TEXT'),
             ('REQ', 'TEXT'),
+            ('RAWPARS', 'TEXT'),
             ('DIV', 'TEXT'),
             ('LEM', 'TEXT'),
             ('BIGRAMS', 'TEXT'),
@@ -140,8 +139,10 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
         print(inden+'\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             idn, court, req, act = row
-            tokens_by_par = [tokenize(par) for par in act.split(sep_par)]
-            tokens_by_par = [par for par in tokens_by_par if len(par)>1]
+            rawpars = [
+                par for par in act.split(sep_par) if len(tokenize(par))>1
+            ]
+            tokens_by_par = [tokenize(par) for par in rawpars]
             lems_by_par = [
                 [lem_dict[word] for word in par] for par in tokens_by_par
             ]
@@ -154,6 +155,7 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
                     idn,
                     court,
                     req,
+                    sep_par.join(rawpars),
                     sep_par.join(
                         [sep_toklem.join(par) for par in tokens_by_par]
                     ),
@@ -168,10 +170,9 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
                     )
                 )
             )
-        DB_save.insert_data(holder, col_num=7)
+        DB_save.insert_data(holder, col_num=8)
         print(inden+'\t\tBatch was proceed in {:4.5f} seconds'.format(time()-t1))
     print(inden+'Total time costs: {}'.format(time()-t0))
-
 
 
 ###Testing=====================================================================

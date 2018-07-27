@@ -8,6 +8,7 @@ from sentan.stringbreakers import (
 
 __version__ = 0.1
 
+###Content=====================================================================
 class DataStore():
     '''
     Storage for different text information units with arbitrary structure
