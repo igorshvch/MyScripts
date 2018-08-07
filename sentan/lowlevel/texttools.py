@@ -21,28 +21,30 @@ class DataStore():
         for par in act:
             voc.update(par)
 
-def words_count(acts_gen):
-        t0 = time()
-        vocab = Counter()
-        for act in acts_gen:
-            for par in act:
-                vocab.update(par)
-        t1 = time()
-        print('Words were counted in {} seconds'.format(t1-t0))
-        return vocab
+def bigrams_intersection(tokens_list, stpw):
+    #Initialize local funcs:
+    crbg = create_bigrams
+    tokens_wostpw = [token for token in tokens_list if token not in stpw]
+    bigrams = crbg(tokens_list)
+    cleaned_bigrams = crbg(tokens_wostpw)
+    return list(set(bigrams).intersection(cleaned_bigrams))
+
+def clean_txt_and_remove_stpw(par, sep, stpw):
+    cleaned = [word for word in par.split(sep) if word not in stpw]
+    return ' '.join(cleaned)
+
+def clean_txt_and_remove_stpw_add_bigrams(par, sep, stpw):
+    crtbgr = create_bigrams
+    cleaned = [word for word in par.split(sep) if word not in stpw]
+    cleaned += crtbgr(cleaned)
+    return ' '.join(cleaned)
     
-def collect_all_words(act):
-    return [
-        w
-        for par in act
-        for w in par
-    ]
-    
-def create_bigrams(par):
+def create_bigrams(tokens_list):
     separator = BGRINR_B
     holder=[]
     holder = [
-        separator.join((par[i-1], par[i])) for i in range(1, len(par), 1)
+        separator.join((tokens_list[i-1], tokens_list[i]))
+        for i in range(1, len(tokens_list), 1)
     ]
     return holder
     

@@ -216,23 +216,12 @@ class DataBase():
             )
         self.conn.commit()
     
-    def insert_data_by_tabel(self, table_name, data):
-        if table_name not in self.tables:
-            raise TypeError('Incorrect table name!')
+    def total_rows(self):
         if not self.cur:
             self.open(**self.path)
-        if len(data) == 1:
-            self.cur.execute(
-                'INSERT INTO {tn} VALUES (?,?)'\
-                .format(tn=table_name), (data[0][0], data[0][1])
-            )
-            print('Data was inserted!')
-        else:
-            self.cur.executemany(
-                'INSERT INTO {tn} VALUES (?,?)'\
-                .format(tn=table_name), data
-            )
-        self.conn.commit()
+        return self.cur.execute("SELECT Count(*) FROM TNBI").fetchone()[0]
+    
+    
 
     
 
