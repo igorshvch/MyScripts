@@ -33,10 +33,42 @@ def clean_txt_and_remove_stpw(par, sep, stpw):
     cleaned = [word for word in par.split(sep) if word not in stpw]
     return ' '.join(cleaned)
 
-def clean_txt_and_remove_stpw_add_bigrams(par, sep, stpw):
-    crtbgr = create_bigrams
-    cleaned = [word for word in par.split(sep) if word not in stpw]
-    cleaned += crtbgr(cleaned)
+#def clean_txt_and_remove_stpw_add_bigrams(par, sep, stpw):
+#    crtbgr = create_bigrams
+#    cleaned = [word for word in par.split(sep) if word not in stpw]
+#    cleaned += crtbgr(cleaned)
+#    return ' '.join(cleaned)
+
+def clean_txt_and_remove_stpw_add_bigrams_splitted(lemmed_pars,
+                                                   par_len,
+                                                   sep_par,
+                                                   sep_lems,
+                                                   stpw):
+    crbg = create_bigrams
+    holder_pars = []
+    holder_pars_and_bigrs = []
+    spl = lemmed_pars.split(sep_par)
+    for par in spl:
+        if len(par) > par_len:
+            par_spl = par.split(sep_lems)
+            cleaned = [word for word in par_spl if word not in stpw]
+            bigrams = crbg(par_spl)
+            cleaned_bigrams = crbg(cleaned)
+            ints_bigrams = list(set(bigrams).intersection(cleaned_bigrams))
+            holder_pars.append(' '.join(cleaned))
+            holder_pars_and_bigrs.append(
+                ' '.join(cleaned + ints_bigrams)
+            )
+        else:
+            holder_pars.append('')
+            holder_pars_and_bigrs.append('')
+    return holder_pars, holder_pars_and_bigrs
+
+def clean_txt_and_remove_stpw_add_intersect_bigrams(par, sep, stpw):
+    bgrint = bigrams_intersection
+    tokens_list = par.split(sep)
+    cleaned = [word for word in tokens_list if word not in stpw]
+    cleaned += bgrint(tokens_list, stpw)
     return ' '.join(cleaned)
     
 def create_bigrams(tokens_list):

@@ -29,7 +29,7 @@ def act_and_concl_to_mtrx(vector_pop='concl',
         vectorizer = C_VEC
     elif vector_model == 'tfidf':
         vectorizer = T_VEC
-    def inner_func1_act(pars_list, concl, bigrs=None):
+    def inner_func1_act(pars_list, concl, pars_with_bigrs=None):
         data = [concl] + pars_list
         vectorizer.fit(data)
         data_mtrx = create_vectors(data, vectorizer)
@@ -46,7 +46,7 @@ def act_and_concl_to_mtrx(vector_pop='concl',
             return update_mtrx
         else:
             return data_mtrx
-    def inner_func2_concl(pars_list, concl, bigrs=None):
+    def inner_func2_concl(pars_list, concl, pars_with_bigrs=None):
         concl = [concl]
         data = concl + pars_list
         vectorizer.fit(concl)
@@ -64,10 +64,10 @@ def act_and_concl_to_mtrx(vector_pop='concl',
             return update_mtrx
         else:
             return data_mtrx 
-    def inner_func3_mixed(pars_list, concl, bigrs):
-        data = [concl] + pars_list
-        vectorizer.fit(data+[bigrs])
-        data_mtrx = create_vectors(data, vectorizer)
+    def inner_func3_mixed(pars_list, concl, pars_with_bigrs):
+        concl = [concl]
+        vectorizer.fit(concl + pars_list)
+        data_mtrx = create_vectors(concl + pars_with_bigrs, vectorizer)
         if addition:
             update_mtrx = (
                 np.append(

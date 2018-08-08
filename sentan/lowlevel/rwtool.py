@@ -29,11 +29,11 @@ def write_text(text, path):
     with open(path, mode='w', encoding=GLOB_ENC) as fle:
         fle.write(text)
 
-def write_text_to_csv(file_name,
+def write_text_to_csv(full_path,
                       iter_txt_holder,
                       header=None,
                       zero_string=None):
-    with open(file_name, mode='w', newline='', encoding=GLOB_ENC) as fle:
+    with open(full_path, mode='w', newline='', encoding=GLOB_ENC) as fle:
         writer = csv.writer(
             fle,
             delimiter='|',
