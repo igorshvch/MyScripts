@@ -80,15 +80,15 @@ def create_bigrams(tokens_list):
     ]
     return holder
     
-def create_indexdct_from_par(par_list):
+def create_indexdct_from_tokens_list(tokens_list):
     separator = DCTKEY_B
-    index_dct = {word:set() for word in par_list}
+    index_dct = {word:set() for word in tokens_list}
     counter = 0
-    for word in par_list:
+    for word in tokens_list:
         index_dct[word].add(counter)
         counter+=1
-    index_dct['total'] = {len(par_list)}
-    for word in par_list:
+    index_dct['total'] = {len(tokens_list)}
+    for word in tokens_list:
         index_dct['total'+separator+word]={len(index_dct[word])}
     return index_dct
 

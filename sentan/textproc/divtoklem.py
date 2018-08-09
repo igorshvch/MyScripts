@@ -10,22 +10,23 @@ from sentan.dirman import DIR_STRUCT
 from sentan.stringbreakers import RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
 from sentan.lowlevel import textsep
 from sentan.lowlevel.texttools import (
-    create_bigrams, create_indexdct_from_par, indexdct_to_string
+    create_indexdct_from_tokens_list, indexdct_to_string #, create_bigrams
 )
 from sentan.lowlevel.rwtool import (
     collect_exist_file_paths, load_text, save_object, load_pickle
 )
 
-__version__ = 0.1
+__version__ = 0.3
 
 ###Content=====================================================================
-DataStore = mypars.ParsDataStore()
+DataStore1 = mypars.ParsDataStore()
+DataStore2 = mypars.ParsDataStore()
 TOTAL_ACTS = 183
 
 def raw_files_to_db(load_dir_name='',
                     sep_type=textsep.SEP_TYPE,
                     inden='',
-                    DS=DataStore):
+                    DS=DataStore1):
     #Initialise local vars
     t0=time()
     PATTERN_PASS = textsep.PATTERN_PASS
@@ -89,11 +90,13 @@ def raw_files_to_db(load_dir_name='',
     TOTAL_ACTS = counter
     print(inden+'Total time costs: {}'.format(time()-t0))
     DS.create_lem_map()
-    save_object(DS.lem_map,
-                ('lem_map_' + str(dt.date(dt.now()))),
-                r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData')
+    save_object(
+        DS.lem_map,
+        ('lem_map_' + str(dt.date(dt.now()))),
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+    )
 
-def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
+def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     #Initialise local vars
     t0 = time()
     TA = TOTAL_ACTS
@@ -103,10 +106,11 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
     sep_toklem = TOKLEM_B
     sep_bigr = BGRSEP_B
     sep_dctitm = DCTITM_B
+    lemmed_pars_counter = 0
     #Initialise local funcs
     tokenize = mypars.tokenize
-    cr2gr = create_bigrams
-    create_indexdct = create_indexdct_from_par
+    #cr2gr = create_bigrams
+    create_indexdct = create_indexdct_from_tokens_list
     indexdct_tostr = indexdct_to_string
     #Initiate DB connection:
     DB_load = mysqlite.DataBase(
@@ -127,8 +131,9 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
             ('RAWPARS', 'TEXT'),
             ('DIV', 'TEXT'),
             ('LEM', 'TEXT'),
-            ('BIGRAMS', 'TEXT'),
-            ('INDX', 'TEXT')
+            #('BIGRAMS', 'TEXT'),
+            ('INDXACT', 'TEXT'),
+            ('INDXPAR', 'TEXT')
         )
     )
     #Start division and lemmatization
@@ -146,8 +151,12 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
             lems_by_par = [
                 [lem_dict[word] for word in par] for par in tokens_by_par
             ]
-            bigrams = [cr2gr(par) for par in lems_by_par]
-            index = [
+            lemmed_pars_counter += len(lems_by_par)
+            DS.words_count(lems_by_par)
+            lems_by_act = [word for par in lems_by_par for word in par]
+            #bigrams = [['',''], ['',''], ['','']] #[cr2gr(par) for par in lems_by_par]
+            index_act = indexdct_tostr(create_indexdct(lems_by_act))
+            index_pars = [
                 indexdct_tostr(create_indexdct(par)) for par in lems_by_par
             ]
             holder.append(
@@ -162,17 +171,28 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden=''):
                     sep_par.join(
                         [sep_toklem.join(par) for par in lems_by_par]
                     ),
+                    #sep_par.join(
+                    #    [sep_bigr.join(par) for par in bigrams]
+                    #),
+                    sep_dctitm.join(index_act),
                     sep_par.join(
-                        [sep_bigr.join(par) for par in bigrams]
-                    ),
-                    sep_par.join(
-                        [sep_dctitm.join(par) for par in index]
+                        [sep_dctitm.join(par) for par in index_pars]
                     )
                 )
             )
         DB_save.insert_data(holder, col_num=8)
         print(inden+'\t\tBatch was proceed in {:4.5f} seconds'.format(time()-t1))
     print(inden+'Total time costs: {}'.format(time()-t0))
+    save_object(
+        DS.vocab,
+        'vocab_nw',
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+    )
+    save_object(
+        lemmed_pars_counter,
+        'total_lem_pars',
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+    )
 
 
 ###Testing=====================================================================
