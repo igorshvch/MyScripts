@@ -1,4 +1,3 @@
-from writer import writer
 from time import time
 from sentan import mysqlite
 from sentan.textproc import myvect as mv
@@ -354,8 +353,8 @@ def model_6_tfidf_act_bigrint_stopw_parlen(concl_lemmed, # model N 7
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
-def aggregate_model(concl_lemmed,
-                    par_len=140):
+def aggregate_model_csd(concl_lemmed,
+                        par_len=140):
     #Initialise local vars=======================
     t0 = time()
     sep_par = RAWPAR_B
@@ -506,7 +505,6 @@ def aggregate_model(concl_lemmed,
         'm6':holder_m6
     }
     return holders
-
 
 
 ###Testing=====================================================================

@@ -87,9 +87,9 @@ def create_indexdct_from_tokens_list(tokens_list):
     for word in tokens_list:
         index_dct[word].add(counter)
         counter+=1
-    index_dct['total'] = {len(tokens_list)}
+    index_dct['total'] = [len(tokens_list)]
     for word in tokens_list:
-        index_dct['total'+separator+word]={len(index_dct[word])}
+        index_dct['total'+separator+word]=[len(index_dct[word])]
     return index_dct
 
 def indexdct_to_string(index_dct):
@@ -107,7 +107,10 @@ def string_to_indexdct(list_of_strings):
     par_dict = {}
     for string in list_of_strings:
         key, vals = string.split(sep_keyval)
-        par_dict[key] = set([int(i) for i in vals.split(sep_index)])
+        if 'total' in key:
+            par_dict[key] = int(vals)
+        else:
+            par_dict[key] = set([int(i) for i in vals.split(sep_index)])
     return par_dict
 
 

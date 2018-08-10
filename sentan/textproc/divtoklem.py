@@ -104,7 +104,7 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     lem_dict = load_pickle(str(DIR_STRUCT['StatData'].joinpath(lem_dict_name)))
     sep_par = RAWPAR_B
     sep_toklem = TOKLEM_B
-    sep_bigr = BGRSEP_B
+    #sep_bigr = BGRSEP_B
     sep_dctitm = DCTITM_B
     lemmed_pars_counter = 0
     #Initialise local funcs
