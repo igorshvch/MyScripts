@@ -19,7 +19,7 @@ from sentan.stringbreakers import (
 )
 from sentan.textproc.scorer import score
 
-__version__ = 0.1
+__version__ = 0.2
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
@@ -45,8 +45,10 @@ def aggregate_model(concl_lemmed,
     t0 = time()
     sep_par = RAWPAR_B
     sep_lems = TOKLEM_B
-    sep_dctitm = DCTITM_B ##############ENDED HERE!!!!
+    sep_dctitm = DCTITM_B
+    vocab_nw = VOCAB_NW
     TA = None # num of rows in DB table
+    TA_pars = TOTAL_PARS
     OUTPUT = None # size of batch
     stpw = STPW
     ##Concl holders for different models=====================
@@ -57,6 +59,8 @@ def aggregate_model(concl_lemmed,
     )
     #Initialise local funcs======================
     estimator = mv.eval_cos_dist
+    local_scorer = score
+    local_str_to_indct = str_to_indct
     ##Initialise vectorizers for different models============
     vectorizer_m1 = vectorizer_m2 = mv.act_and_concl_to_mtrx(
         vector_pop='concl',
@@ -90,6 +94,7 @@ def aggregate_model(concl_lemmed,
     DB_load = DB_CONNECTION
     TA = DB_load.total_rows()
     print('Total acts num: {}'.format(TA))
+    print('Total pars num: {}'.format(TA_pars))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     holder_m1 = []
@@ -98,6 +103,7 @@ def aggregate_model(concl_lemmed,
     holder_m4 = []
     holder_m5 = []
     holder_m6 = []
+    holder_YA = []
     counter = 1
     for batch in acts_gen:
         t1 = time()
@@ -107,7 +113,7 @@ def aggregate_model(concl_lemmed,
             )
         )
         for row in batch:
-            _, court, req, rawpars, _, lems, _, _ = row
+            _, court, req, rawpars, _, lems, _, index_pars = row
             #Split strings
             rawpars_splitted = rawpars.split(sep_par)
             lems_splitted = lems.split(sep_par)
@@ -163,9 +169,23 @@ def aggregate_model(concl_lemmed,
                 [court, req, cos_m6, rawpars_splitted[par_index_m6-1]]
             )
             ################################################
-            ################################################
-            ################################################
-            counter += 1
+            #Eval par score:
+            raw_pars_for_scr_par = rawpars.split(sep_par)
+            lems_by_par = [par for par in lems.split(sep_par)]
+            scr_par_holder = []
+            #Find par with the best score through the current act in the row
+            for ind, index_par in enumerate(index_pars.split(sep_par)):
+                sc_par = local_scorer(
+                concl_YA,
+                lems_by_par[ind].split(sep_lems),
+                local_str_to_indct(index_par.split(sep_dctitm)),
+                vocab=vocab_nw,
+                total_parts=TA_pars
+                )
+                scr_par_holder.append((sc_par, raw_pars_for_scr_par[ind]))
+            best_par_scr, best_par = sorted(scr_par_holder)[-1]
+            holder_YA.append([court, req, best_par_scr, best_par])
+        counter += 1
         print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
     print(
             '\tActs were processed!'
@@ -177,15 +197,36 @@ def aggregate_model(concl_lemmed,
     holder_m4 = sorted(holder_m4, key=lambda x: x[2])
     holder_m5 = sorted(holder_m5, key=lambda x: x[2])
     holder_m6 = sorted(holder_m6, key=lambda x: x[2])
+    holder_YA = sorted(holder_YA, key=lambda x:x[2], reverse=True)
     holders = {
         'm1':holder_m1,
         'm2':holder_m2,
         'm3':holder_m3,
         'm4':holder_m4,
         'm5':holder_m5,
-        'm6':holder_m6
+        'm6':holder_m6,
+        'YA':holder_YA
     }
     return holders
+
+def count_result_scores(res_dict, top=5):
+    holder_acts_set = set()
+    holder_acts = []
+    for key in res_dict:
+        val = res_dict[key]
+        reqs = [val[i][0]+' '+val[i][1] for i in range(top)]
+        for req in reqs:
+            holder_acts_set.add(req)
+        holder_acts.extend(reqs)
+    acts_score = {}
+    for act_req in holder_acts_set:
+        acts_score[act_req] = holder_acts.count(act_req)
+    return sorted(
+        [[key_dct, value] for key_dct, value in acts_score.items()],
+        key=lambda x: x[1],
+        reverse=True
+    )
+
 
 ###Testing=====================================================================
 if __name__ == '__main__':
