@@ -2,11 +2,96 @@ import re
 from collections import deque
 
 court = (
-    '(Постановление (((Арбитражного суда|ФАС) (Волго-Вятского|Восточно-Сибирского|Дальневосточного|Западно-Сибирского|Московского|Поволжского|Северо-Западного|Северо-Кавказского|Уральского|Центрального) округа)|(Верховного|Конституционного) Суда РФ|(Пленума|Президиума) ВАС РФ)|Определение (Верховного|Конституционного) Суда РФ|Решение ВАС РФ) от'
+    '(Постановление +?(((Арбитражного суда|ФАС) (Волго-Вятского|Восточно-Сибирского|Дальневосточного|Западно-Сибирского|Московского|Поволжского|Северо-Западного|Северо-Кавказского|Уральского|Центрального) округа)|(Верховного|Конституционного) Суда РФ|(Пленума|Президиума) ВАС РФ)|Определение (Верховного|Конституционного) Суда РФ|Решение ВАС РФ) от.+'
 )
 
 quest = '[0-9][0-9]*\.[0-9][0-9]*\..+[А-я)?](?=\n)'
-pos = '(Позиция|Способ) [0-9].+(?=\n)'
+pos = '(Позиция|Способ) [.0-9]+ .+'
+
+pattern_pos_last_ver = '[0-9] [.0-9]+ ?[.0-9]*? .+'
+
+def cleaner(raw_text, pattern=pattern_pos_last_ver):
+    #Remove internal 'K+' marks
+    marks_removed = re.subn('\{.+?\}', '', raw_text)[0]
+    #Change endline sequences
+    endline_normilized = marks_removed.replace(' \n ', '\n')
+    #Split into situations
+    situations_list = re.split('\n-{69}\n', endline_normilized)
+    #Split situations into paragraphs
+    situations_list_spl = [
+        situation.split('\n') for situation in situations_list
+    ]
+    print('Total situations num: {}'.format(len(situations_list)))
+    #Find all positions
+    positions = [
+        re.match(pattern, situation).group()
+        for situation in situations_list if re.match(pattern, situation)
+    ]
+    print('Total positions num: {}'.format(len(positions)))
+    #Format text in the situations
+    formated_situations_list_spl = {}
+    trigger_pos = False
+    #trigger_inner_pos = False
+    trigger_act = False
+    #inden = '\t'
+    #for spl_situation in situations_list_spl:
+    for idn, spl_situation in enumerate(situations_list_spl):
+        par_holder = {}
+        spl_situation = deque(spl_situation)
+        new_par = None
+        pos_count = 1
+        court_count = 1
+        #print('Iteration # {}'.format(idn), end=' === ')
+        while spl_situation:
+            par = new_par if new_par else spl_situation.popleft() 
+            if not trigger_pos and re.match(pattern, par):
+                par_holder['sit'] = par
+                trigger_pos = True
+            elif re.match(pos, par):
+                par_holder['pos'+str(pos_count)] = par
+                #trigger_inner_pos = True
+                trigger_act = False
+                pos_count+=1
+            elif not trigger_act and re.match(court, par):
+                par_holder['court'+str(court_count)] = par
+                trigger_act = True
+                inner_par_holder = []
+                new_par = spl_situation.popleft()
+                    if (not re.match(pattern, new_par)
+                        and not re.match(pos, new_par)
+                        and not re.match(court, new_par)):
+                            inner_holder = new_par
+                            new_par = None
+                    else:
+                        new_par = None 
+                    try:
+                        new_par = spl_situation.popleft()
+                            if (not re.match(pattern, new_par)
+                                and not re.match(pos, new_par)
+                                and not re.match(court, new_par)):
+                                par_holder['ann'+str(court_count)] = (
+                                new_par + ' ' + inner_holder
+                                    )
+                                new_par = None
+                            else:
+                                par_holder['ann'+str(court_count)] = inner_holder
+                                new_par = None              
+                    except:
+                        par_holder['ann'+str(court_count)] = inner_holder
+                        new_par = None
+                court_count+=1
+        formated_situations_list_spl[idn]=par_holder
+        trigger_pos = False
+        trigger_inner_pos = False
+        trigger_act = False
+    #Return results
+    return {
+        'spl_pars':situations_list_spl,
+        'poses':positions,
+        'format':formated_situations_list_spl
+    }
+
+
 
 class Collector():
     def __init__(self):
@@ -108,3 +193,64 @@ def parser(d_lines:deque):
                 holder.append('\t'+d_lines.popleft()[:-1])
                 holder.append('\t'+d_lines.popleft()[:-1])
     return holder
+
+stt='''     par = spl_situation.popleft() if not new_par else new_par
+            if not trigger_pos and re.match(pattern, par):
+                #print('Pos # {}'.format(idn))
+                par_holder.append(par)
+                trigger_pos = True
+                continue
+            elif re.match(pos, par):
+                print('InnerPos # {}'.format(idn))
+                par_holder.append('\t'+par)
+                print('Appended', end=', ')
+                trigger_inner_pos = True
+                #One level down
+                new_par = spl_situation.popleft()
+                #print('New el\n{}'.format(new_par), end=', ')
+                if re.match(court, new_par):
+                    print('matched', end=', ')
+                    par_holder.append('\t\t'+new_par)
+                    par_holder.append('\t\t\t'+spl_situation.popleft())
+                    try:
+                        print('trying to load', end=', ')
+                        new_par = spl_situation.popleft()
+                        print('Lower level: new el', end=', ')
+                        if (
+                            not re.match(pattern, new_par)
+                            and not re.match(pos, new_par)
+                            and not re.match(court, new_par)
+                        ):
+                            print('Lowlevel if passed')
+                            par_holder.append('\t\t\t'+new_par)
+                            new_par = None
+                        else:
+                            print('Lowlevel if failed')
+                    except:
+                        pass
+            elif (
+                not trigger_inner_pos
+                and not trigger_act
+                and re.match(court, par)               
+            ):
+                #print('Court # {}'.format(idn))
+                par_holder.append('\t'+par)
+                trigger_act = True
+                #One level down
+                try:
+                    new_par = spl_situation.popleft()
+                    if (
+                        not re.match(pattern, new_par)
+                        and not re.match(pos, new_par)
+                        and not re.match(court, new_par)
+                    ):
+                        par_holder.append('\t\t\t'+new_par)
+                        new_par = None
+                    else:
+                        pass
+                except:
+                    pass
+                break
+        trigger_pos = False
+        trigger_inner_pos = False
+        trigger_act = False'''
