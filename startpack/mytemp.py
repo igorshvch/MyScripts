@@ -9,6 +9,7 @@ quest = '[0-9][0-9]*\.[0-9][0-9]*\..+[А-я)?](?=\n)'
 pos = '(Позиция|Способ) [.0-9]+ .+'
 
 pattern_pos_last_ver = '[0-9] [.0-9]+ ?[.0-9]*? .+'
+pattern_nonj = pat = '(Консультация эксперта|Информационное сообщение +?ФНС|Письм[оа]|Приказ|Статья +?:)'
 
 def cleaner(raw_text, pattern=pattern_pos_last_ver):
     #Remove internal 'K+' marks
@@ -29,14 +30,16 @@ def cleaner(raw_text, pattern=pattern_pos_last_ver):
     ]
     print('Total positions num: {}'.format(len(positions)))
     #Format text in the situations
-    formated_situations_list_spl = {}
+    format_dct = {}
+    for_strings = []
+    sep = '#'
     trigger_pos = False
-    #trigger_inner_pos = False
     trigger_act = False
-    #inden = '\t'
+    inden = '\t'
     #for spl_situation in situations_list_spl:
     for idn, spl_situation in enumerate(situations_list_spl):
-        par_holder = {}
+        dct_holer = {}
+        list_holder = []
         spl_situation = deque(spl_situation)
         new_par = None
         pos_count = 1
@@ -45,53 +48,94 @@ def cleaner(raw_text, pattern=pattern_pos_last_ver):
         while spl_situation:
             par = new_par if new_par else spl_situation.popleft() 
             if not trigger_pos and re.match(pattern, par):
-                par_holder['sit'] = par
+                dct_holer['sit'] = par
+                list_holder.append(par)
                 trigger_pos = True
             elif re.match(pos, par):
-                par_holder['pos'+str(pos_count)] = par
+                dct_holer['pos'+sep+str(pos_count)] = par
+                list_holder.append(inden+par)
                 #trigger_inner_pos = True
                 trigger_act = False
+                court_count = pos_count
                 pos_count+=1
             elif not trigger_act and re.match(court, par):
-                par_holder['court'+str(court_count)] = par
+                dct_holer['court'+sep+str(court_count)] = par
+                list_holder.append(2*inden+par)
                 trigger_act = True
-                inner_par_holder = []
-                new_par = spl_situation.popleft()
-                    if (not re.match(pattern, new_par)
-                        and not re.match(pos, new_par)
-                        and not re.match(court, new_par)):
-                            inner_holder = new_par
-                            new_par = None
-                    else:
-                        new_par = None 
+                try:
+                    new_par = spl_situation.popleft()
+                except:
+                    new_par=None
+                    continue
+                if (not re.match(pattern, new_par)
+                    and not re.match(pos, new_par)
+                    and not re.match(court, new_par)
+                    and not re.match(pattern_nonj, new_par)):
+                    inner_holder = new_par
+                    new_par = None
                     try:
                         new_par = spl_situation.popleft()
-                            if (not re.match(pattern, new_par)
-                                and not re.match(pos, new_par)
-                                and not re.match(court, new_par)):
-                                par_holder['ann'+str(court_count)] = (
-                                new_par + ' ' + inner_holder
-                                    )
-                                new_par = None
-                            else:
-                                par_holder['ann'+str(court_count)] = inner_holder
-                                new_par = None              
+                        if (not re.match(pattern, new_par)
+                            and not re.match(pos, new_par)
+                            and not re.match(court, new_par)
+                            and not re.match(pattern_nonj, new_par)):
+                            dct_holer['ann'+sep+str(court_count)] = (
+                            inner_holder + '\n' + new_par
+                                )
+                            list_holder.append(
+                                3*inden+inner_holder
+                                +'\n'+3*inden
+                                + new_par
+                            )
+                            new_par = None
+                        else:
+                            dct_holer['ann'+sep+str(court_count)] = inner_holder
+                            list_holder.append(3*inden+inner_holder)
+                            new_par = None              
                     except:
-                        par_holder['ann'+str(court_count)] = inner_holder
+                        dct_holer['ann'+sep+str(court_count)] = inner_holder
+                        list_holder.append(3*inden+inner_holder)
                         new_par = None
-                court_count+=1
-        formated_situations_list_spl[idn]=par_holder
+
+                else:
+                    new_par = None
+        dct_holer['total'] = pos_count
+        format_dct[idn]=dct_holer
+        for_strings.extend(list_holder)
         trigger_pos = False
-        trigger_inner_pos = False
         trigger_act = False
     #Return results
     return {
         'spl_pars':situations_list_spl,
         'poses':positions,
-        'format':formated_situations_list_spl
+        'format':for_strings,
+        'dct':format_dct
     }
 
+def dct_to_list_of_concls(main_dct):
+    holder = []
+    outter_dct = main_dct['dct']
+    for j in range(len(main_dct['poses'])):
+        inner_dct = outter_dct[j]
+        lngth = inner_dct['total'] if inner_dct['total'] > 1 else 2
+        for i in range(1, lngth):
+            inner_holder = []
+            inner_holder.append(inner_dct['sit'])
+            inner_holder.append(
+                inner_dct['pos#'+str(i)][11:] if 'pos#'+str(i) in inner_dct.keys() else ''
+                )
+            inner_holder.append(inner_dct.get('ann#'+str(i), ''))
+            holder.append(' '.join(inner_holder))
+    return holder
 
+def start_up():
+    outter_holder = []
+    t0 = elly.time()
+    for idn, concl in enumerate(concls12):
+        t1 = elly.time()
+        print('CONCLUSION # {} started.\nTime:\ntotal: {:3.5f}\nsub: {:3.5f}'.format(idn, elly.time()-t0, elly.time()-t1), end='\n'+23*'='+'\n')
+        outter_holder.append((elly.count_result_scores(elly.aggregate_model(concl), top=5)))
+    return outter_holder
 
 class Collector():
     def __init__(self):

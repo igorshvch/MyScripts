@@ -14,12 +14,16 @@ from sentan.lowlevel.texttools import (
     create_bigrams as crtbgr,
     string_to_indexdct as str_to_indct
 )
+from sentan.lowlevel.mypars import (
+    tokenize as my_tok,
+    lemmatize as my_lem
+)
 from sentan.stringbreakers import (
     DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
 )
 from sentan.textproc.scorer import score
 
-__version__ = 0.2
+__version__ = 0.3
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
@@ -37,9 +41,8 @@ DB_CONNECTION = mysqlite.DataBase(
             tb_name=True
 )
 TOTAL_ACTS = DB_CONNECTION.total_rows()
-    
 
-def aggregate_model(concl_lemmed,
+def aggregate_model(raw_concl,
                     par_len=140):
     #Initialise local vars=======================
     t0 = time()
@@ -51,6 +54,7 @@ def aggregate_model(concl_lemmed,
     TA_pars = TOTAL_PARS
     OUTPUT = None # size of batch
     stpw = STPW
+    concl_lemmed = my_lem(my_tok(raw_concl))
     ##Concl holders for different models=====================
     concl_YA = [word for word in concl_lemmed if word not in stpw]
     concl_m1 = concl_m4 = ' '.join(concl_YA)
