@@ -131,11 +131,41 @@ def dct_to_list_of_concls(main_dct):
 def start_up():
     outter_holder = []
     t0 = elly.time()
+    t1 = elly.time()
     for idn, concl in enumerate(concls12):
+        print(
+            (
+                23*'='
+                +'\n'
+                +'CONCLUSION # {} started.\nTime:\ntotal: {:3.5f}\nsub: {:3.5f}'.format(idn, elly.time()-t0, elly.time()-t1)
+            ),
+            end='\n'+23*'='+'\n'
+        )
+        outter_holder.append(
+            (elly.count_result_scores(elly.aggregate_model(concl), top=5))
+        )
         t1 = elly.time()
-        print('CONCLUSION # {} started.\nTime:\ntotal: {:3.5f}\nsub: {:3.5f}'.format(idn, elly.time()-t0, elly.time()-t1), end='\n'+23*'='+'\n')
-        outter_holder.append((elly.count_result_scores(elly.aggregate_model(concl), top=5)))
+    print(
+        (
+            '\n'
+            +23*'='
+            +'\n'
+            +'Total time costs in mins: {:3.5f}'.format((elly.time()-t0)/60)
+        )
+    )
     return outter_holder
+
+def f(concls, results):
+    path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\2018-08-16-VAT'
+    for idn, item in enumerate(concls):
+        elly.rwtool.write_text_to_csv(
+            path+'/res'+str(idn+1)+'.txt',
+            results[idn],
+            header=['act', 'score'],
+            zero_string=item
+        )
+
+
 
 class Collector():
     def __init__(self):

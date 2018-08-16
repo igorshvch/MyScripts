@@ -79,6 +79,15 @@ def create_bigrams(tokens_list):
         for i in range(1, len(tokens_list), 1)
     ]
     return holder
+
+#def create_ngrams(tokens_list, n=3):
+#    separator = BGRINR_B
+#    holder=[]
+#    holder = [
+#        separator.join((tokens_list[i-1], tokens_list[i]))
+#        for i in range(1, len(tokens_list), 1)
+#    ]
+#    return holder
     
 def create_indexdct_from_tokens_list(tokens_list):
     separator = DCTKEY_B
