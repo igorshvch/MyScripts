@@ -18,7 +18,13 @@ PATTERNS = {
     'N' : NONJUDJ
 }
 
-def cleaner(raw_text, pat_dict = PATTERNS):
+with open(
+    r'C:\Users\EA-ShevchenkoIS\TextProcessing\result_ppn.dat',
+    mode='r',
+    encoding='utf_8') as fle:
+    RAW_TEXT = fle.read()
+
+def cleaner(raw_text = RAW_TEXT, pat_dict = PATTERNS):
     #Remove internal 'K+' marks
     marks_removed = re.subn('\{.+?\}', '', raw_text)[0]
     #Change endline sequences
@@ -96,7 +102,7 @@ def cleaner(raw_text, pat_dict = PATTERNS):
                             )
                             new_par = None
                         else:
-                            dct_holer['ann'+sep+str(court_count)] = inner_holder
+                            dct_holer['ann'+sep+str(court_count)]=inner_holder
                             list_holder.append(3*inden+inner_holder)
                             new_par = None              
                     except:
@@ -119,7 +125,7 @@ def cleaner(raw_text, pat_dict = PATTERNS):
         'dct' : format_dct
     }
 
-def dct_to_list_of_concls(main_dct):
+def dct_to_list_of_concls(main_dct, c_first=0, c_last=None):
     holder = []
     outter_dct = main_dct['dct']
     for j in range(len(main_dct['poses'])):
@@ -129,11 +135,18 @@ def dct_to_list_of_concls(main_dct):
             inner_holder = []
             inner_holder.append(inner_dct['sit'])
             inner_holder.append(
-                inner_dct['pos#'+str(i)][11:] if 'pos#'+str(i) in inner_dct.keys() else ''
+                inner_dct['pos#'+str(i)][11:] \
+                if 'pos#'+str(i) in inner_dct.keys() else ''
                 )
             inner_holder.append(inner_dct.get('ann#'+str(i), ''))
             holder.append(' '.join(inner_holder))
-    return holder
+    if c_last:
+        cf = c_first if c_first == 0 else c_first-1
+        return holder[cf:c_last]
+    elif c_first:
+        return holder[c_first-1:]
+    else:
+        return holder
 
 
 ###Testing=====================================================================

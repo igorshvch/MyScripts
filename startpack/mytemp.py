@@ -128,11 +128,12 @@ def dct_to_list_of_concls(main_dct):
             holder.append(' '.join(inner_holder))
     return holder
 
-def start_up():
+def start_up(concls):
+    '''Starts iterations on data'''
     outter_holder = []
     t0 = elly.time()
     t1 = elly.time()
-    for idn, concl in enumerate(concls12):
+    for idn, concl in enumerate(concls):
         print(
             (
                 23*'='
@@ -141,10 +142,10 @@ def start_up():
             ),
             end='\n'+23*'='+'\n'
         )
+        t1 = elly.time()
         outter_holder.append(
             (elly.count_result_scores(elly.aggregate_model(concl), top=5))
         )
-        t1 = elly.time()
     print(
         (
             '\n'
@@ -155,8 +156,12 @@ def start_up():
     )
     return outter_holder
 
-def f(concls, results):
-    path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\2018-08-16-VAT'
+def write_res(concls, results, dir_name=None):
+    '''Write results to txt files'''
+    assert dir_name
+    path = (
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\{}'.format(dir_name)
+    )
     for idn, item in enumerate(concls):
         elly.rwtool.write_text_to_csv(
             path+'/res'+str(idn+1)+'.txt',
@@ -165,7 +170,10 @@ def f(concls, results):
             zero_string=item
         )
 
-
+def auto_shtd():
+    import os
+    os.system('taskkill /f /im jupyter-qtconsole.exe')
+    os.system('shutdown -s -t 0.1')
 
 class Collector():
     def __init__(self):
