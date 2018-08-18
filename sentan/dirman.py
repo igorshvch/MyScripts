@@ -9,8 +9,7 @@ DIR_STRUCT = {
     'StatData': (pthl.Path().home().joinpath('TextProcessing', 'StatData')),
     'Results': (pthl.Path().home().joinpath('TextProcessing', 'Results')),
     'DivActs': (pthl.Path().home().joinpath('TextProcessing', 'DivActs')),
-    'TNBI':(pthl.Path().home().joinpath('TextProcessing', 'TNBI')),
-    'ParsInfo': (pthl.Path().home().joinpath('TextProcessing', 'ParsInfo'))
+    'TNBI':(pthl.Path().home().joinpath('TextProcessing', 'TNBI'))
 }
 
 def create_dirs(dir_struct, sub_dir=''):

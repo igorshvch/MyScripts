@@ -131,15 +131,18 @@ def aggregate_model(raw_concl,
                 for par in lems_splitted
             ]
             pars_m3 = [
-                local_cleaner_m3(par, sep_lems, stpw) if len(par)>par_len else ''
+                local_cleaner_m3(par, sep_lems, stpw) \
+                if len(par)>par_len else ''
                 for par in lems_splitted
             ]
             pars_m4 = [
-                local_cleaner_m4(par, sep_lems, stpw) if len(par)>par_len else ''
+                local_cleaner_m4(par, sep_lems, stpw) \
+                if len(par)>par_len else ''
                 for par in lems_splitted
             ]
             pars_m5 = [
-                local_cleaner_m5(par, sep_lems, stpw) if len(par)>par_len else ''
+                local_cleaner_m5(par, sep_lems, stpw) \
+                if len(par)>par_len else ''
                 for par in lems_splitted
             ]
             pars_m6, pars_and_bigrs_m6 = local_cleaner_m6(
@@ -167,7 +170,9 @@ def aggregate_model(raw_concl,
                 [court, req, cos_m5, rawpars_splitted[par_index_m5-1]]
             )
             par_index_m6, cos_m6 = estimator(
-                vectorizer_m6(pars_m6, concl_m6, pars_with_bigrs=pars_and_bigrs_m6)
+                vectorizer_m6(
+                    pars_m6, concl_m6, pars_with_bigrs=pars_and_bigrs_m6
+                )
             )
             holder_m6.append(
                 [court, req, cos_m6, rawpars_splitted[par_index_m6-1]]
@@ -230,6 +235,50 @@ def count_result_scores(res_dict, top=5):
         key=lambda x: x[1],
         reverse=True
     )
+
+def start_up(concls):
+    '''Starts iterations on data'''
+    outter_holder = []
+    t0 = time()
+    t1 = time()
+    for idn, concl in enumerate(concls):
+        print(
+            (
+                23*'='
+                +'\n'
+                +'CONCLUSION # {} started.'.format(idn)
+                +'\nTime:\ntotal: {:3.5f}'.format(time()-t0)
+                +'\nsub: {:3.5f}'.format(time()-t1)
+            ),
+            end='\n'+23*'='+'\n'
+        )
+        t1 = time()
+        outter_holder.append(
+            (count_result_scores(aggregate_model(concl), top=5))
+        )
+    print(
+        (
+            '\n'
+            +23*'='
+            +'\n'
+            +'Total time costs in mins: {:3.5f}'.format((time()-t0)/60)
+        )
+    )
+    return outter_holder
+
+def write_res(concls, results, dir_name=None):
+    '''Write results to txt files'''
+    assert dir_name
+    path = (
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\{}'.format(dir_name)
+    )
+    for idn, item in enumerate(concls):
+        rwtool.write_text_to_csv(
+            path+'/res'+str(idn+1)+'.txt',
+            results[idn],
+            header=['act', 'score'],
+            zero_string=item
+        )
 
 
 ###Testing=====================================================================
