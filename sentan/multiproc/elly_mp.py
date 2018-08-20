@@ -3,7 +3,7 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite
+from sentan import mysqlite, dirman
 from sentan.textproc import myvect as mv
 from sentan.lowlevel import rwtool
 from sentan.lowlevel.texttools import (
@@ -27,16 +27,16 @@ __version__ = 0.4
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\vocab_nw'
+    str(dirman.DIR_STRUCT['StatData'].joinpath('vocab_nw'))
 )
 TOTAL_PARS = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_lem_pars'
+    str(dirman.DIR_STRUCT['StatData'].joinpath('total_lem_pars'))
 )
 STPW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
+    str(dirman.DIR_STRUCT['StatData'].joinpath('custom_stpw'))
 )
 DB_CONNECTION = mysqlite.DataBase(
-            raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
+            raw_path = str(dirman.DIR_STRUCT['TNBI']),
             base_name='TNBI',
             tb_name=True
 )
@@ -217,38 +217,3 @@ def aggregate_model(raw_concl,
         'YA':holder_YA
     }
     return holders
-
-def count_result_scores(res_dict, top=5):
-    holder_acts_set = set()
-    holder_acts = []
-    for key in res_dict:
-        val = res_dict[key]
-        reqs = [val[i][0]+' '+val[i][1] for i in range(top)]
-        for req in reqs:
-            holder_acts_set.add(req)
-        holder_acts.extend(reqs)
-    acts_score = {}
-    for act_req in holder_acts_set:
-        acts_score[act_req] = holder_acts.count(act_req)
-    return sorted(
-        [[key_dct, value] for key_dct, value in acts_score.items()],
-        key=lambda x: x[1],
-        reverse=True
-    )
-
-
-###Testing=====================================================================
-if __name__ == '__main__':
-    import sys
-    try:
-        sys.argv[1]
-        if sys.argv[1] == '-v':
-            print('Module name: {}'.format(sys.argv[0]))
-            print('Version info:', __version__)
-        elif sys.argv[1] == '-t':
-            print('Testing mode!')
-            print('Not implemented!')
-        else:
-            print('Not implemented!')
-    except IndexError:
-        print('Mode var wasn\'t passed!')

@@ -13,7 +13,7 @@ from sentan.stringbreakers import (
     RAWPAR_B, TOKLEM_B
 )
 
-__version__ = 0.5
+__version__ = 0.6
 
 ###Content=====================================================================
 STPW = load_pickle(
@@ -22,7 +22,8 @@ STPW = load_pickle(
 
 def model_1_count_concl_stopw(concl_lemmed,
                               addition=True,
-                              fill_val=1):
+                              fill_val=1,
+                              verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -31,7 +32,8 @@ def model_1_count_concl_stopw(concl_lemmed,
     OUTPUT = None # size of batch
     stpw = STPW
     concl = ' '.join(word for word in concl_lemmed if word not in stpw)
-    print(concl)
+    if verbose:
+        print(concl)
     #Initialise local funcs
     vectorizer = mv.act_and_concl_to_mtrx(
         vector_pop='concl',
@@ -48,13 +50,15 @@ def model_1_count_concl_stopw(concl_lemmed,
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars = [
@@ -65,17 +69,20 @@ def model_1_count_concl_stopw(concl_lemmed,
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:    
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
 def model_2_count_concl_bigrint_stopw(concl_lemmed,
                                       addition=True,
-                                      fill_val=1):
+                                      fill_val=1,
+                                      verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -100,16 +107,19 @@ def model_2_count_concl_bigrint_stopw(concl_lemmed,
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     concl = [word for word in concl_lemmed if word not in stpw]
     concl = ' '.join(concl + bgrint(concl_lemmed, stpw))
-    print(concl)
+    if verbose:
+        print(concl)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars = [
@@ -120,18 +130,21 @@ def model_2_count_concl_bigrint_stopw(concl_lemmed,
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
 def model_3_tfidf_concl_bigrint_stopw_parlen(concl_lemmed,
                                              addition=True,
                                              fill_val=0.001,
-                                             par_len=140):
+                                             par_len=140,
+                                             verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -156,16 +169,19 @@ def model_3_tfidf_concl_bigrint_stopw_parlen(concl_lemmed,
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     concl = [word for word in concl_lemmed if word not in stpw]
     concl = ' '.join(concl + bgrint(concl_lemmed, stpw))
-    print(concl)
+    if verbose:
+        print(concl)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars = [
@@ -176,18 +192,21 @@ def model_3_tfidf_concl_bigrint_stopw_parlen(concl_lemmed,
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
 def model_4_tfidf_act_stopw_parlen(concl_lemmed,  # model N 5
                                    addition=True,
                                    fill_val=0.001,
-                                   par_len=140):
+                                   par_len=140,
+                                   verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -212,16 +231,19 @@ def model_4_tfidf_act_stopw_parlen(concl_lemmed,  # model N 5
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     concl = [word for word in concl_lemmed if word not in stpw]
     concl = ' '.join(concl)
-    print(concl)
+    if verbose:
+        print(concl)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars = [
@@ -232,18 +254,21 @@ def model_4_tfidf_act_stopw_parlen(concl_lemmed,  # model N 5
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:            
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
 def model_5_tfidf_act_bigrintMIX_stopw_parlen(concl_lemmed, # model N 6
                                               addition=True,
                                               fill_val=0.001,
-                                              par_len=140):
+                                              par_len=140,
+                                              verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -268,16 +293,19 @@ def model_5_tfidf_act_bigrintMIX_stopw_parlen(concl_lemmed, # model N 6
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     concl = [word for word in concl_lemmed if word not in stpw]
     concl = ' '.join(concl + bgrint(concl_lemmed, stpw))
-    print(concl)
+    if verbose:
+        print(concl)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars = [
@@ -288,18 +316,21 @@ def model_5_tfidf_act_bigrintMIX_stopw_parlen(concl_lemmed, # model N 6
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
 def model_6_tfidf_act_bigrint_stopw_parlen(concl_lemmed, # model N 7
                                            addition=True,
                                            fill_val=0.001,
-                                           par_len=140):
+                                           par_len=140,
+                                           verbose=False):
     #Initialise local vars
     t0 = time()
     sep_par = RAWPAR_B
@@ -324,16 +355,19 @@ def model_6_tfidf_act_bigrint_stopw_parlen(concl_lemmed, # model N 7
         tb_name=True
     )
     TA = DB_load.total_rows()
-    print('Total acts num: {}'.format(TA))
+    if verbose:
+        print('Total acts num: {}'.format(TA))
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     concl = [word for word in concl_lemmed if word not in stpw]
     concl = ' '.join(concl + bgrint(concl_lemmed, stpw))
-    print(concl)
+    if verbose:
+        print(concl)
     holder = []
     for batch in acts_gen:
         t1 = time()
-        print('\tStarting new batch! {:4.5f}'.format(time()-t0))
+        if verbose:
+            print('\tStarting new batch! {:4.5f}'.format(time()-t0))
         for row in batch:
             _, court, req, rawpars, _, lems, _, _ = row
             pars, pars_and_bigrs = local_cleaner(
@@ -345,11 +379,13 @@ def model_6_tfidf_act_bigrint_stopw_parlen(concl_lemmed, # model N 7
             holder.append(
                 [court, req, cos, rawpars.split(sep_par)[par_index-1]]
             )
-        print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
-    print(
-            '\tActs were processed!'
-            +' Time in seconds: {}'.format(time()-t0)
-        )
+        if verbose:
+            print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
+    if verbose:
+        print(
+                '\tActs were processed!'
+                +' Time in seconds: {}'.format(time()-t0)
+            )
     holder = sorted(holder, key=lambda x: x[2])
     return holder
 
@@ -484,7 +520,7 @@ def aggregate_model_csd(concl_lemmed,
             ################################################
             ################################################
             ################################################
-            counter += 1
+        counter += 1
         print('\t\tBatch processed! Time: {:4.5f}'.format(time()-t1))
     print(
             '\tActs were processed!'

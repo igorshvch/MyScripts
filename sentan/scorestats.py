@@ -1,6 +1,6 @@
 from collections import Counter
 
-#Collectiting stats information from list of scores
+#Collectiting stats information from list of scores (scorer.py)
 
 __version__ = 0.1
 
