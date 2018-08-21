@@ -12,15 +12,15 @@ def estimate(data):
     return ''.join([str(i)*2 for i in data])
 
 
-def worker(data, lock, store):
+def worker(data, lock, store, proc_num):
     name = generate_name()
     est_data = estimate(data)
     pid = os.getpid()
     store.put({name: est_data}, block=False)
     with lock:
         print(
-            'PROCESS: {}, NAME: {}, DATA: {:4s}'.format(
-                name, pid, est_data
+            'PROCESS: {}, PROC_NUM: {}, NAME: {}, DATA: {:4s}'.format(
+                name, proc_num, pid, est_data
             )
         )
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     print('Parent started, PID: {}'.format(global_pid))
     for i in range(3):
         data = ''.join(rd.sample(alph2, 7))
-        p = Process(target=worker, args=(data, lock, global_store))
+        p = Process(target=worker, args=(data, lock, global_store, i))
         p.start()
         holder.append(p)
     for i in holder: i.join()
