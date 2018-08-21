@@ -1,3 +1,5 @@
+from multiprocessing import Process, Pipe, Lock
+import os
 from time import time
 from math import (
     log10 as math_log,
@@ -41,6 +43,130 @@ DB_CONNECTION = mysqlite.DataBase(
             tb_name=True
 )
 TOTAL_ACTS = DB_CONNECTION.total_rows()
+
+def sub_process(pipe,
+                lock,
+                concls,
+                estimator,
+                local_scorer,
+                local_str_to_indct,
+                vectorizers,
+                local_cleaners):
+    sep_par = RAWPAR_B
+    sep_lems = TOKLEM_B
+    sep_dctitm = DCTITM_B
+    vocab_nw = VOCAB_NW
+    stpw = STPW
+    TA_pars = TOTAL_PARS
+    batch = pipe.recv()
+    pipe.close()
+    concl_m1, concl_m2, concl_m3, concl_m4, concl_m5, concl_m6, concl_YA =(
+        concls
+    )
+    vectorizer_m1, vectorizer_m2, vectorizer_m3, \
+    vectorizer_m4, vectorizer_m5, vectorizer_m6 = vectorizers
+    local_cleaner_m1, local_cleaner_m2, \
+    local_cleaner_m3, local_cleaner_m4,
+    local_cleaner_m5, local_cleaner_m6 = local_cleaners
+    holder_m1 = []
+    holder_m2 = []
+    holder_m3 = []
+    holder_m4 = []
+    holder_m5 = []
+    holder_m6 = []
+    holder_YA = []
+    for row in batch:
+        _, court, req, rawpars, _, lems, _, index_pars = row
+        #Split strings
+        rawpars_splitted = rawpars.split(sep_par)
+        lems_splitted = lems.split(sep_par)
+        #Process pars
+        pars_m1 = [
+            local_cleaner_m1(par, sep_lems, stpw)
+            for par in lems_splitted
+        ]
+        pars_m2 = [
+            local_cleaner_m2(par, sep_lems, stpw)
+            for par in lems_splitted
+        ]
+        pars_m3 = [
+            local_cleaner_m3(par, sep_lems, stpw) \
+            if len(par)>par_len else ''
+            for par in lems_splitted
+        ]
+        pars_m4 = [
+            local_cleaner_m4(par, sep_lems, stpw) \
+            if len(par)>par_len else ''
+            for par in lems_splitted
+        ]
+        pars_m5 = [
+            local_cleaner_m5(par, sep_lems, stpw) \
+            if len(par)>par_len else ''
+            for par in lems_splitted
+        ]
+        pars_m6, pars_and_bigrs_m6 = local_cleaner_m6(
+            lems, par_len, sep_par, sep_lems, stpw
+        )
+        #Eval cosdist
+        par_index_m1, cos_m1 = estimator(vectorizer_m1(pars_m1, concl_m1))
+        holder_m1.append(
+            [court, req, cos_m1, rawpars_splitted[par_index_m1-1]]
+        )
+        par_index_m2, cos_m2 = estimator(vectorizer_m2(pars_m2, concl_m2))
+        holder_m2.append(
+            [court, req, cos_m2, rawpars_splitted[par_index_m2-1]]
+        )
+        par_index_m3, cos_m3 = estimator(vectorizer_m3(pars_m3, concl_m3))
+        holder_m3.append(
+            [court, req, cos_m3, rawpars_splitted[par_index_m3-1]]
+        )
+        par_index_m4, cos_m4 = estimator(vectorizer_m4(pars_m4, concl_m4))
+        holder_m4.append(
+            [court, req, cos_m4, rawpars_splitted[par_index_m4-1]]
+        )
+        par_index_m5, cos_m5 = estimator(vectorizer_m5(pars_m5, concl_m5))
+        holder_m5.append(
+            [court, req, cos_m5, rawpars_splitted[par_index_m5-1]]
+        )
+        par_index_m6, cos_m6 = estimator(
+            vectorizer_m6(
+                pars_m6, concl_m6, pars_with_bigrs=pars_and_bigrs_m6
+            )
+        )
+        holder_m6.append(
+            [court, req, cos_m6, rawpars_splitted[par_index_m6-1]]
+        )
+        ################################################
+        #Eval par score:
+        raw_pars_for_scr_par = rawpars.split(sep_par)
+        lems_by_par = [par for par in lems.split(sep_par)]
+        scr_par_holder = []
+        #Find par with the best score through the current act in the row
+        for ind, index_par in enumerate(index_pars.split(sep_par)):
+            sc_par = local_scorer(
+            concl_YA,
+            lems_by_par[ind].split(sep_lems),
+            local_str_to_indct(index_par.split(sep_dctitm)),
+            vocab=vocab_nw,
+            total_parts=TA_pars
+            )
+            scr_par_holder.append((sc_par, raw_pars_for_scr_par[ind]))
+        best_par_scr, best_par = sorted(scr_par_holder)[-1]
+        holder_YA.append([court, req, best_par_scr, best_par])
+        return_data.append(
+            holder_m1,
+            holder_m2,
+            holder_m3,
+            holder_m4,
+            holder_m5,
+            holder_m6,
+            holder_YA
+            )
+        pipe.send(return_data)
+        pipe.close()
+        pid
+
+
 
 def aggregate_model(raw_concl,
                     par_len=140):
