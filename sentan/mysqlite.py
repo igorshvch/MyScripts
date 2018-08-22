@@ -60,6 +60,8 @@ class DataBase():
             self.table_name = self.retrive_tabel_name()
             self.tables.add(self.table_name)
         self.mode = mode
+        print('CUR: {}'.format(self.cur))
+        print('CONN: {}'.format(self.conn))
     
     def __call__(self,
                  raw_path=None,
