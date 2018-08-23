@@ -233,7 +233,7 @@ def main(raw_concl):
     TA_pars = TOTAL_PARS
     OUTPUT = TA//10 if TA > 10 else TA//2
     #====================================================================
-    PROC_UNITS = CPUS+1
+    PROC_UNITS = CPUS-1
     #Tests showed that 5 processing units compute data with optimal speed
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     #gen = ((concl_lemmed, batch) for batch in acts_gen)
