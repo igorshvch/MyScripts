@@ -60,8 +60,8 @@ class DataBase():
             self.table_name = self.retrive_tabel_name()
             self.tables.add(self.table_name)
         self.mode = mode
-        print('CUR: {}'.format(self.cur))
-        print('CONN: {}'.format(self.conn))
+        #print('CUR: {}'.format(self.cur))
+        #print('CONN: {}'.format(self.conn))
     
     def __call__(self,
                  raw_path=None,
@@ -74,10 +74,10 @@ class DataBase():
             key = (bool(raw_path), bool(dir_name), bool(base_name))
             p = DataBase.options[key](raw_path, dir_name, base_name)
             if print_path:
-                print(p)
+                print('CALL:,', p)
             self.conn = sqlite3.connect(str(p))
             self.cur = self.conn.cursor()
-            print('DB connection is established!')
+            print('CALL: DB connection is established!')
     
     def __getitem__(self, key):
         if not self.cur:

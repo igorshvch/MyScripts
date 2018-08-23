@@ -13,7 +13,7 @@ def generate_name():
     return ''.join(rd.sample(alph, 4))
 
 def estimate(data):
-    return ''.join([str(i)*1000000 for i in data])
+    return ''.join([str(i)*3 for i in data])
 
 def worker(q1, q2, lock):
     #sleep(1)
@@ -37,8 +37,8 @@ def worker(q1, q2, lock):
             #        )
             #    )
             q2.put(
-                #{'n':name, 'p':proc_num, 'pid':pid, 'ed':est_data},
-                None,
+                {'n':name, 'p':proc_num, 'pid':pid, 'ed':est_data},
+                #None,
                 block=False
             )
 
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     print(
         'Parent started, PID: {}, TIME: {:2.3f}'.format(global_pid, time()-t0)
     )
-    gen = ((''.join(rd.sample(alph2, 7)), i) for i in range(cpus*500))
+    gen = ((''.join(rd.sample(alph2, 7)), i) for i in range(0, cpus*3))
     local_worker = worker
     with Pool(cpus, worker, initargs=(store1, store2, lock)) as pool:
         for new in gen:
@@ -62,5 +62,5 @@ if __name__ == '__main__':
         for _ in range(cpus):
             store1.put(None)
     print('Parent ended, PID: {}, TIME: {:2.3f}'.format(global_pid, time()-t0))
-    #while not store2.empty():
-    #    print(store2.get())
+    while not store2.empty():
+        print(store2.get())

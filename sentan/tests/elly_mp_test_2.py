@@ -1,8 +1,9 @@
 # coding=cp1251
 
 from multiprocessing import Pool, Manager, Lock, current_process, cpu_count
+import queue
 import os
-from time import time
+from time import time, sleep
 from math import (
     log10 as math_log,
     exp as math_exp
@@ -16,14 +17,14 @@ from sentan.lowlevel.texttools import (
     clean_txt_and_remove_stpw_add_bigrams_splitted as ctrsabs,
     clean_txt_and_remove_stpw_add_intersect_bigrams as ctrsaib,
     create_bigrams as crtbgr,
-    string_to_indexdct as str_to_indct
+   string_to_indexdct as str_to_indct
 )
 from sentan.lowlevel.mypars import (
     tokenize as my_tok,
     lemmatize as my_lem
 )
 from sentan.stringbreakers import (
-    DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
+   DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
 )
 from sentan.textproc.scorer import score
 
@@ -39,50 +40,11 @@ TOTAL_PARS = rwtool.load_pickle(
 STPW = rwtool.load_pickle(
     r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
 )
-DB_CONNECTION = mysqlite.DataBase(
-            raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-            base_name='TNBI',
-            tb_name=True
-)
-TOTAL_ACTS = DB_CONNECTION.total_rows()
-CPUS = cpu_count()-1
+CPUS = cpu_count()
 
-def print_cust(message):
-    print(23*'=')
-    print(message)
-    print(23*'=')
-
-def producer(store1, store2, lock):
-    local_worker = worker
-    with lock:
-        print('Starting', current_process().name)
-    pid = os.getpid()
-    while True:
-        try:
-            item = store1.get()
-        except:
-            with lock:
-                print('\t\tPID: {}. Exception!'.format(pid))
-            continue
-        if item == None:
-            with lock:
-                print('\t\tPID: {}. End loop, bye!'.format(pid))
-            break
-        else:
-            with lock:
-                print('\tPID: {}, starting new batch!'.format(pid))
-                print('\t\tPID: {}, Batch size: {}'.format(pid, len(item[1])))
-            result = local_worker(item)
-            with lock:
-                print('\tPID: {}, LEN: {}'.format(pid, len(result['YA'])))
-            store2.put(
-                result,
-                block=False
-            )
-
-def worker(args):
+def processor(item):
     #Initialise local vars=======================
-    concl_lemmed, batch = args
+    concl_lemmed, batch = item
     par_len = 140
     TA_pars = TOTAL_PARS
     stpw = STPW
@@ -229,25 +191,59 @@ def worker(args):
     results['YA'] = holder_YA
     return results
 
+def consumer(store1, store2, lock):
+    local_worker = processor
+    pid = os.getpid()
+    with lock:
+        print('Starting', current_process().name, 'PID: {}'.format(pid))
+    while True:
+        item = store1.get()
+        if item == None:
+            with lock:
+                print('\t\t\t\tPID: {}. End loop, bye!'.format(pid))
+            break
+        else:
+            with lock:
+                print('\t\t\tPID: {}, starting new batch!'.format(pid))
+                print('\tPID: {}, Batch size: {}'.format(pid, len(item[1])))
+            result = local_worker(item)
+            with lock:
+                print('\t\t\tPID: {}, result: DONE!'.format(pid))
+            store2.put(
+                result,
+                block=False
+            )
+
+def print_cust(message):
+    print(23*'=')
+    print(message)
+    print(23*'=')
+
 def main(raw_concl):
-    #Initialise local vars=======================
+    pid = os.getpid()
+    concl_lemmed = my_lem(my_tok(raw_concl))
     lock = Lock()
     t0 = time()
-    TA = TOTAL_ACTS
+    DB_load = mysqlite.DataBase(
+        raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
+        base_name='TNBI',
+        tb_name=True
+    )
+    TA = DB_load.total_rows()
     TA_pars = TOTAL_PARS
     OUTPUT = TA//10 if TA > 10 else TA//2
-    concl_lemmed = my_lem(my_tok(raw_concl))
-    DB_load = DB_CONNECTION
+    #====================================================================
+    PROC_UNITS = CPUS+1
+    #Tests showed that 5 processing units compute data with optimal speed
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
-    #PROC_UNITS = 11 if TA > 10 else 3
-    store1 = Manager().Queue(maxsize=CPUS)
-    store2 = Manager().Queue()
-    gen = ((concl_lemmed, batch) for batch in acts_gen)
+    #gen = ((concl_lemmed, batch) for batch in acts_gen)
     results = {
         'm1':[], 'm2':[], 'm3':[], 'm4':[], 'm5':[], 'm6':[], 'YA':[]
     }
+    store1 = Manager().Queue(maxsize=PROC_UNITS)
+    store2 = Manager().Queue()
     #Initialise local funcs======================
-    local_worker = producer
+    local_worker = consumer
     #Info========================================
     print('\nTotal acts num: {}'.format(TA))
     print('Total pars num: {}'.format(TA_pars))
@@ -255,25 +251,33 @@ def main(raw_concl):
     t1 = time()
     end_time0 = time()-t0
     print_cust(
-        'Start data processnig! '
+        'Start data processnig! PID: {}, '.format(pid)
         +'TIME: min: {:3.5f}, '.format(end_time0/60)
         +'sec: {:3.5f}'.format(end_time0)
     )
-    with Pool(CPUS*3+2, local_worker, initargs=(store1, store2, lock)) as pool:
-        for new_batch in gen:
-            store1.put(new_batch)
-        #for batch in acts_gen:
-        for _ in range(CPUS):
-            store1.put(None)
+    pool = Pool(
+        PROC_UNITS,
+        local_worker,
+        initargs=(store1, store2, lock))#,
+        #maxtasksperchild=3)
+    for new_batch in acts_gen:
+        store1.put((concl_lemmed, new_batch))
+    #sleep(10)
+    for _ in range(PROC_UNITS):
+        store1.put(None)
+    pool.close()
+    pool.join()
     end_time1 = time()-t1
     print_cust(
         'Data processed! '
         +'TIME: min: {:3.5f}, '.format(end_time1/60)
         +'sec: {:3.5f}'.format(end_time1)
     )
+    ###Results extracting!=======================
     print('Results extracting')
     while not store2.empty():
         res_next = store2.get()
+        print('RES_NEXT INFO: {}, {}'.format(len(res_next), res_next.keys()))
         for key in res_next:
             results[key].extend(res_next[key])
     end_time2 = time()-t0
@@ -291,30 +295,11 @@ def main(raw_concl):
     rwtool.save_object(
         end_res, 'TEST_RES', r'C:\Users\EA-ShevchenkoIS\TextProcessing'
     )
-    return 0
 
 
 ###Testing=====================================================================
 if __name__ == '__main__':
-    print(DB_CONNECTION)
-    print(TOTAL_ACTS)
+    print(23*'=' +'PROGRAM STARTS!' + 23*'=')
     main(
                 '1 .1. Являются ли плательщиками НДС государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения) (  п. 1 ст. 143   НК РФ)?  В   п. 1    данного Постановления указано, что государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения), в силу   п. 1 ст. 143   НК РФ могут являться плательщиками НДС по совершаемым ими финансово-хозяйственным операциям, если они действуют в собственных интересах в качестве самостоятельных хозяйствующих субъектов, а не реализуют публично-правовые функции соответствующего публично-правового образования и не выступают от его имени в гражданских правоотношениях в порядке, предусмотренном   ст. 125   ГК РФ.'
             )
-#    import sys
-#    try:
-#        sys.argv[1]
-#        if sys.argv[1] == '-v':
-#            print('Module name: {}'.format(sys.argv[0]))
-#            print('Version info:', __version__)
-#        elif sys.argv[1] == '-t':
-#            print('Testing mode!')
-#            print('Not implemented!')
-#        elif sys.argv[1] == '-start_mp_test':
-#            main(
-#                '1 .1. Являются ли плательщиками НДС государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения) (  п. 1 ст. 143   НК РФ)?  В   п. 1    данного Постановления указано, что государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения), в силу   п. 1 ст. 143   НК РФ могут являться плательщиками НДС по совершаемым ими финансово-хозяйственным операциям, если они действуют в собственных интересах в качестве самостоятельных хозяйствующих субъектов, а не реализуют публично-правовые функции соответствующего публично-правового образования и не выступают от его имени в гражданских правоотношениях в порядке, предусмотренном   ст. 125   ГК РФ.'
-#            )
-#        else:
-#            print('Not implemented!')
-#    except IndexError:
-#        print('Mode var wasn\'t passed!')
