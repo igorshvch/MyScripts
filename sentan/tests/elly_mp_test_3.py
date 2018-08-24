@@ -218,7 +218,7 @@ def mp_processor(store1, store2, lock):
                 )
             result = local_worker(item)
             with lock:
-                print('\tPID: {:>7}, result: DONE!'.format(pid)+23*'=')
+                print('\tPID: {:>7}, result: DONE!'.format(pid)+26*'=')
             store2.put(
                 result,
                 block=False
@@ -300,10 +300,15 @@ def print_cust(message):
     print(message)
     print(92*'=')
 
-def main(raw_concl):
+def main():
     #Initialise local vars=======================
     pid = os.getpid()
+    with open(r'C:/Users/EA-ShevchenkoIS/TextProcessing/CL.txt', mode='r') as fle:
+        raw_concl = fle.read()
     concl_lemmed = my_lem(my_tok(raw_concl))
+    #rwtool.save_object(
+    #    concl_lemmed, 'CL', r'C:\Users\EA-ShevchenkoIS\TextProcessing'
+    #)
     lock = Lock()
     t0 = time()
     TA_pars = TOTAL_PARS
@@ -354,6 +359,4 @@ def main(raw_concl):
 ###Testing=====================================================================
 if __name__ == '__main__':
     print(23*'=' +'PROGRAM STARTS!' + 23*'=')
-    main(
-                '1 .1. Являются ли плательщиками НДС государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения) (  п. 1 ст. 143   НК РФ)?  В   п. 1    данного Постановления указано, что государственные (муниципальные) органы, имеющие статус юридического лица (государственные и муниципальные учреждения), в силу   п. 1 ст. 143   НК РФ могут являться плательщиками НДС по совершаемым ими финансово-хозяйственным операциям, если они действуют в собственных интересах в качестве самостоятельных хозяйствующих субъектов, а не реализуют публично-правовые функции соответствующего публично-правового образования и не выступают от его имени в гражданских правоотношениях в порядке, предусмотренном   ст. 125   ГК РФ.'
-            )
+    main()
