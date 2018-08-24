@@ -74,7 +74,7 @@ class DataBase():
             key = (bool(raw_path), bool(dir_name), bool(base_name))
             p = DataBase.options[key](raw_path, dir_name, base_name)
             if print_path:
-                print('CALL:,', p)
+                print(p)
             self.conn = sqlite3.connect(str(p))
             self.cur = self.conn.cursor()
             print('CALL: DB connection is established!')
