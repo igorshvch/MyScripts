@@ -79,6 +79,31 @@ def write_cleaned_results_from_csv(valid_holder, common_file_name='res'):
         count+=1
     print('All results are written to files!')
 
+def print_output_to_console(path):
+    import re
+    months = {
+        'января':'01','февраля':'02',
+        'марта':'03','апреля':'04','мая':'05',
+        'июня':'06','июля':'07','августа':'08',
+        'сентября':'09','октября':'10','ноября':'11',
+        'декабря':'12'
+    }
+    dct = {key:0 for key in range(1,8)}
+    res_tot = rwtool.load_pickle(path)
+    counted = count_result_scores(res_tot)
+    for i in counted:
+        court, req = re.split(' от ', i[0])
+        _, date, case = re.split(r'([0-9]{1,2} [А-я]+? [0-9]{4} г.)', req)
+        spl_date = date.split(' ')
+        spl_date[1] = months[spl_date[1]]
+        if len(spl_date[0]) == 1:
+            spl_date[0] = '0'+spl_date[0]
+        date2 = '.'.join(spl_date[:-1])
+        dct[i[1]] +=1
+        print('{:<43s} :: {:<10s} :: {:-<35} :: {:>2d}'.format(court, date2, case[1:],i[1]))
+    for i in range(7, 0, -1):
+        print('with rank {} :: total :: {}'.format(i, dct[i]))
+
 
 ###Testing=====================================================================
 if __name__ == '__main__':

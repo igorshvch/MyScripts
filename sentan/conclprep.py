@@ -24,7 +24,22 @@ with open(
     encoding='utf_8') as fle:
     RAW_TEXT = fle.read()
 
-def cleaner(raw_text = RAW_TEXT, pat_dict = PATTERNS):
+def clean_input_concls(dir_name):
+    with open(
+        ('C:/Users/EA-ShevchenkoIS/'
+        +'TextProcessing/Conclusions/'
+        +'{}/concls_for_process.txt'.format(dir_name)),
+        mode='r') as fle:
+        raw_text = fle.read()
+    spl = [
+        line.strip('0123456789."\'?')
+        for line in raw_text.split('\n')
+        if len(line) > 2
+    ]
+    spl = [line.replace('""', '"') for line in spl]
+    return spl
+
+def clean_output_concls(raw_text = RAW_TEXT, pat_dict = PATTERNS):
     #Remove internal 'K+' marks
     marks_removed = re.subn('\{.+?\}', '', raw_text)[0]
     #Change endline sequences
@@ -147,6 +162,20 @@ def dct_to_list_of_concls(main_dct, c_first=0, c_last=None):
         return holder[c_first-1:]
     else:
         return holder
+
+def find_input_concl_in_stored_ones(lst_of_concls, store):
+    dct = {concl:[] for concl in lst_of_concls}
+    holder = []
+    holder_ind = []
+    for concl in lst_of_concls:
+        concl_test = ''.join([word for word in concl.split() if word])
+        for ind, item in enumerate(store):
+            item_test = ''.join([word for word in item.split() if word])
+            if concl_test in item_test:
+                dct[concl].append(ind)
+                holder.append(item)
+                holder_ind.append(ind)
+    return holder, dct, holder_ind
 
 
 ###Testing=====================================================================

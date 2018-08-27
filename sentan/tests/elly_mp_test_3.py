@@ -43,6 +43,7 @@ STPW = rwtool.load_pickle(
     r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
 )
 CPUS = cpu_count()
+LOCK = Lock()
 
 def processor(item):
     #Initialise local vars=======================
@@ -247,7 +248,7 @@ def mp_queue_fill(concl, inner_queue, diapason, lock):
     with lock:
         print('PID: {:>7}, QUEUE FILLER HAS ENDED THE LOOP, bye!'.format(pid))
 
-def mp_writer(inner_queue, lock, diapason):
+def mp_writer(inner_queue, lock, diapason, indx):
     pid = os.getpid()
     results = {
         'm1':[], 'm2':[], 'm3':[], 'm4':[], 'm5':[], 'm6':[], 'YA':[]
@@ -291,7 +292,9 @@ def mp_writer(inner_queue, lock, diapason):
         else:
             end_res[key] = sorted(results[key], key=lambda x:x[2])
     rwtool.save_object(
-        end_res, 'TEST_RES', r'C:\Users\EA-ShevchenkoIS\TextProcessing'
+        end_res,
+        str(indx) + '_TEST_RES',
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\2018-08-27'
     )
     print('\t\t\tPID: {:>7}. Results are written to file'.format(pid)) 
         
@@ -300,16 +303,14 @@ def print_cust(message):
     print(message)
     print(92*'=')
 
-def main():
+def main(raw_concl, indx, local_lock=LOCK):
     #Initialise local vars=======================
     pid = os.getpid()
-    with open(r'C:/Users/EA-ShevchenkoIS/TextProcessing/CL.txt', mode='r') as fle:
-        raw_concl = fle.read()
     concl_lemmed = my_lem(my_tok(raw_concl))
     #rwtool.save_object(
     #    concl_lemmed, 'CL', r'C:\Users\EA-ShevchenkoIS\TextProcessing'
     #)
-    lock = Lock()
+    lock = local_lock
     t0 = time()
     TA_pars = TOTAL_PARS
     #===========================================
@@ -339,7 +340,7 @@ def main():
         for i in range(PROC_UNITS)
     ]
     RESULTS_CONSUMER = Process(
-        target=mp_writer, args=(store2, lock, PROC_UNITS)
+        target=mp_writer, args=(store2, lock, PROC_UNITS, indx)
     )
     QUEUE_FILLER.start()
     for WP in WORKERS_HOLDER: WP.start()
@@ -355,8 +356,57 @@ def main():
         +'sec: {:>9.5f}'.format(end_time2)
     )
 
+def nextiter(path_to_file=None, local_lock=LOCK):
+    if not path_to_file:
+        path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\Conclusions\2018-08-27\RES_89.txt'
+    else:
+        path = path_to_file
+    lock = local_lock
+    with lock:
+        print(92*'=')
+        print(92*'=')
+        print(92*'=')
+        print('ITERATION BEGINS!\n\n')
+    t0 = time()
+    with open(path, mode='r') as fle:
+        text = fle.read().strip('\n')
+    concls = text.split('\n')
+    for ind, concl in enumerate(concls):
+        with lock:
+            print(
+                '\n\n'
+                +35*'!'
+                +'NEW CONCLUSION! # {:>3d}'.format(ind)
+                +36*'!'
+                +'\n\n'
+            )
+        main(concl, ind)
+    end_time = time()-t0
+    with lock:
+        print(
+            '\n\nITERATION ENDS! TOTAL TIME: '
+            +'min: {:>9.5f}, sec: {:>9.5f}'.format(end_time/60, end_time)
+        )
+        print(92*'=')
+        print(92*'=')
+        print(92*'=')
+    
 
 ###Testing=====================================================================
 if __name__ == '__main__':
-    print(23*'=' +'PROGRAM STARTS!' + 23*'=')
-    main()
+    import sys
+    print(38*'=' +'PROGRAM STARTS!' + 39*'=')
+    try:
+        sys.argv[1]
+        if sys.argv[1] == '-v':
+            print('Module name: {}'.format(sys.argv[0]))
+            print('Version info:', __version__)
+        elif sys.argv[1] == '-t':
+            print('Testing mode!')
+            print('Not implemented!')
+        elif sys.argv[1] == '-r':
+            nextiter()
+        else:
+            print('Not implemented!')
+    except IndexError:
+        print('Mode var wasn\'t passed!')
