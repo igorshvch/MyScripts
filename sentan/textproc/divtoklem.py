@@ -29,7 +29,8 @@ def raw_files_to_db(load_dir_name='',
                     DS=DataStore1):
     #Initialise local vars
     t0=time()
-    PATTERN_PASS = textsep.PATTERN_PASS
+    PATTERN_PASS1 = textsep.PATTERN_PASS1
+    PATTERN_PASS2 = textsep.PATTERN_PASS2
     tokenize = mypars.tokenize
     separator = RAWPAR_B
     #Initiate concls loading:
@@ -66,7 +67,7 @@ def raw_files_to_db(load_dir_name='',
         )
         print(inden+'\t\tStarting blanklines deletion')
         for act in divided:
-            if re.match(PATTERN_PASS, act):
+            if re.match(PATTERN_PASS1, act) or re.match(PATTERN_PASS2, act):
                 continue
             counter+=1
             splitted = act.split('\n')

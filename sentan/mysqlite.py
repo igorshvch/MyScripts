@@ -204,9 +204,11 @@ class DataBase():
         if not self.cur:
             self.open(**self.path)
         if len(data) == 1:
+            q = '?,'*col_num
+            q='('+q[:-1]+')'
             self.cur.execute(
-                'INSERT INTO {tn} VALUES (?,?)'\
-                .format(tn=self.table_name), (data[0][0], data[0][1])
+                'INSERT INTO {tn} VALUES {cols}'\
+                .format(tn=self.table_name, cols=q), *data
             )
             print('Data was inserted!')
         else:

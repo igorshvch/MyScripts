@@ -1,5 +1,6 @@
 import re
 from collections import deque
+from sentan.gui.dialogs import find_file_path as ffp
 
 __version__ = 0.1
 
@@ -24,12 +25,9 @@ with open(
     encoding='utf_8') as fle:
     RAW_TEXT = fle.read()
 
-def clean_input_concls(dir_name):
-    with open(
-        ('C:/Users/EA-ShevchenkoIS/'
-        +'TextProcessing/Conclusions/'
-        +'{}/concls_for_process.txt'.format(dir_name)),
-        mode='r') as fle:
+def clean_input_concls():
+    path = ffp()
+    with open(path, mode='r') as fle:
         raw_text = fle.read()
     spl = [
         line.strip('0123456789."\'?')

@@ -90,19 +90,37 @@ def print_output_to_console(path):
     }
     dct = {key:0 for key in range(1,8)}
     res_tot = rwtool.load_pickle(path)
-    counted = count_result_scores(res_tot)
+    counted = elly.count_result_scores(res_tot)
     for i in counted:
-        court, req = re.split(' от ', i[0])
-        _, date, case = re.split(r'([0-9]{1,2} [А-я]+? [0-9]{4} г.)', req)
-        spl_date = date.split(' ')
-        spl_date[1] = months[spl_date[1]]
-        if len(spl_date[0]) == 1:
-            spl_date[0] = '0'+spl_date[0]
-        date2 = '.'.join(spl_date[:-1])
-        dct[i[1]] +=1
-        print('{:<43s} :: {:<10s} :: {:-<35} :: {:>2d}'.format(court, date2, case[1:],i[1]))
+        if len(re.split(' от ', i[0])) < 2:
+            print(i[0], i[1])
+        else:
+            court, req = re.split(' от ', i[0])
+            _, date, case = re.split(r'([0-9]{1,2} [А-я]+? [0-9]{4} г.)', req)
+            spl_date = date.split(' ')
+            spl_date[1] = months[spl_date[1]]
+            if len(spl_date[0]) == 1:
+                spl_date[0] = '0'+spl_date[0]
+            date2 = '.'.join(spl_date[:-1])
+            dct[i[1]] +=1
+            print('{:-<43s} :: {:<10s} :: {:-<35} :: {:>2d}'.format(court, date2, case[1:],i[1]))
     for i in range(7, 0, -1):
         print('with rank {} :: total :: {}'.format(i, dct[i]))
+
+def export_court_reqs(file_name):
+    DB_load = elly.DB_CONNECTION
+    TA = DB_load.total_rows()
+    OUTPUT = TA//10 if TA > 10 else TA//2
+    acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
+    holder = []
+    for batch in acts_gen:
+        for row in batch:
+            ind, court, req, _, _, _, _, _ = row
+            holder.append([ind, court, req])
+    elly.rwtool.write_text_to_csv(
+        'C:/Users/EA-ShevchenkoIS/TextProcessing/Results/{}.txt'.format(file_name),
+        holder
+    )
 
 
 ###Testing=====================================================================

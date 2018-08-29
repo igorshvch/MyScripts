@@ -29,6 +29,7 @@ from sentan.stringbreakers import (
    DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
 )
 from sentan.textproc.scorer import score
+from sentan.gui.dialogs import find_file_path as ffp
 
 __version__ = 0.3
 
@@ -321,7 +322,7 @@ def main(raw_concl, indx, local_lock=LOCK):
     store1 = Queue(maxsize=PROC_UNITS)
     store2 = Queue(maxsize=PROC_UNITS)
     #Info========================================
-    print('\nTotal acts num: {:>7}'.format(3458))
+    print('\nTotal acts num: {:>7}'.format(3478))
     print('Total pars num: {:>7}'.format(TA_pars))
     #Start data processing=======================
     end_time0 = time()-t0
@@ -358,7 +359,7 @@ def main(raw_concl, indx, local_lock=LOCK):
 
 def nextiter(path_to_file=None, local_lock=LOCK):
     if not path_to_file:
-        path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\Conclusions\2018-08-27\RES_89.txt'
+        path = ffp()
     else:
         path = path_to_file
     lock = local_lock
@@ -366,7 +367,8 @@ def nextiter(path_to_file=None, local_lock=LOCK):
         print(92*'=')
         print(92*'=')
         print(92*'=')
-        print('ITERATION BEGINS!\n\n')
+        print('ITERATION BEGINS!')
+        print(path+'\n\n')
     t0 = time()
     with open(path, mode='r') as fle:
         text = fle.read().strip('\n')
