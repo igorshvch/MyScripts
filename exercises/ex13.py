@@ -22,6 +22,6 @@ if __name__ == '__main__':
     ]
     for pr in holder: pr.start()
     for pr in holder: pr.join()
-    for pr in holder: pr.terminate()
+    #for pr in holder: pr.terminate()
     with lock:
         print('Main process exit.')
