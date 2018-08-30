@@ -29,7 +29,10 @@ from sentan.stringbreakers import (
    DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
 )
 from sentan.textproc.scorer import score
-from sentan.gui.dialogs import find_file_path as ffp
+from sentan.gui.dialogs import (
+    find_file_path as ffp,
+    find_directory_path as fdp
+)
 
 __version__ = 0.3
 
@@ -39,6 +42,9 @@ VOCAB_NW = rwtool.load_pickle(
 )
 TOTAL_PARS = rwtool.load_pickle(
     r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_lem_pars'
+)
+TOTAL_ACTS = rwtool.load_pickle(
+    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_acts'
 )
 STPW = rwtool.load_pickle(
     r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
@@ -239,7 +245,7 @@ def mp_queue_fill(concl, inner_queue, diapason, lock):
             base_name='TNBI',
             tb_name=True
         )
-    TA = DB_load.total_rows()
+    TA = TOTAL_ACTS
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     for new_batch in acts_gen:
@@ -249,7 +255,7 @@ def mp_queue_fill(concl, inner_queue, diapason, lock):
     with lock:
         print('PID: {:>7}, QUEUE FILLER HAS ENDED THE LOOP, bye!'.format(pid))
 
-def mp_writer(inner_queue, lock, diapason, indx):
+def mp_writer(inner_queue, lock, diapason, indx, save_path):
     pid = os.getpid()
     results = {
         'm1':[], 'm2':[], 'm3':[], 'm4':[], 'm5':[], 'm6':[], 'YA':[]
@@ -295,7 +301,7 @@ def mp_writer(inner_queue, lock, diapason, indx):
     rwtool.save_object(
         end_res,
         str(indx) + '_TEST_RES',
-        r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\2018-08-27'
+        save_path
     )
     print('\t\t\tPID: {:>7}. Results are written to file'.format(pid)) 
         
@@ -304,7 +310,7 @@ def print_cust(message):
     print(message)
     print(92*'=')
 
-def main(raw_concl, indx, local_lock=LOCK):
+def main(raw_concl, indx, save_path, local_lock=LOCK):
     #Initialise local vars=======================
     pid = os.getpid()
     concl_lemmed = my_lem(my_tok(raw_concl))
@@ -322,7 +328,7 @@ def main(raw_concl, indx, local_lock=LOCK):
     store1 = Queue(maxsize=PROC_UNITS)
     store2 = Queue(maxsize=PROC_UNITS)
     #Info========================================
-    print('\nTotal acts num: {:>7}'.format(3478))
+    print('\nTotal acts num: {:>7}'.format(TOTAL_ACTS))
     print('Total pars num: {:>7}'.format(TA_pars))
     #Start data processing=======================
     end_time0 = time()-t0
@@ -341,7 +347,7 @@ def main(raw_concl, indx, local_lock=LOCK):
         for i in range(PROC_UNITS)
     ]
     RESULTS_CONSUMER = Process(
-        target=mp_writer, args=(store2, lock, PROC_UNITS, indx)
+        target=mp_writer, args=(store2, lock, PROC_UNITS, indx, save_path)
     )
     QUEUE_FILLER.start()
     for WP in WORKERS_HOLDER: WP.start()
@@ -363,12 +369,14 @@ def nextiter(path_to_file=None, local_lock=LOCK):
     else:
         path = path_to_file
     lock = local_lock
+    save_path = fdp()
     with lock:
         print(92*'=')
         print(92*'=')
         print(92*'=')
         print('ITERATION BEGINS!')
-        print(path+'\n\n')
+        print(path)
+        print(save_path+'\n\n')
     t0 = time()
     with open(path, mode='r') as fle:
         text = fle.read().strip('\n')
@@ -382,7 +390,7 @@ def nextiter(path_to_file=None, local_lock=LOCK):
                 +36*'!'
                 +'\n\n'
             )
-        main(concl, ind)
+        main(concl, ind, save_path)
     end_time = time()-t0
     with lock:
         print(

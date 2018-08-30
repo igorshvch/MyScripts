@@ -89,11 +89,17 @@ def raw_files_to_db(load_dir_name='',
         )
     global TOTAL_ACTS
     TOTAL_ACTS = counter
+    print(inden+'Acts in total: {}'.format(TOTAL_ACTS))
     print(inden+'Total time costs: {}'.format(time()-t0))
     DS.create_lem_map()
     save_object(
         DS.lem_map,
         ('lem_map_' + str(dt.date(dt.now()))),
+        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+    )
+    save_object(
+        TOTAL_ACTS,
+        'total_acts',
         r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
     )
 

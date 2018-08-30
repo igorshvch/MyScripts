@@ -30,7 +30,7 @@ def clean_input_concls():
     with open(path, mode='r') as fle:
         raw_text = fle.read()
     spl = [
-        line.strip('0123456789."\'?')
+        line.strip('0123456789. "\'?')
         for line in raw_text.split('\n')
         if len(line) > 2
     ]
@@ -43,7 +43,7 @@ def clean_output_concls(raw_text = RAW_TEXT, pat_dict = PATTERNS):
     #Change endline sequences
     endline_normilized = marks_removed.replace(' \n ', '\n')
     #Split into situations
-    situations_list = re.split('\n-{69}\n', endline_normilized)
+    situations_list = re.split('\n-{69}\n', endline_normilized)[:-1]
     #Split situations into paragraphs
     situations_list_spl = [
         situation.split('\n') for situation in situations_list
