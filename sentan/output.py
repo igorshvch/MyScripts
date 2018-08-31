@@ -1,10 +1,34 @@
-from sentan.lowlevel import rwtool
-from sentan import elgranderoyal as elly
+from .lowlevel import rwtool
+from . import elgranderoyal as elly
+from .lowlevel import rwtool
 from time import time
+from .gui.dialogs import (
+    find_file_path as ffp,
+    find_directory_path as fdp
+)
+from . import mysqlite
 
 __version__ = 0.3
 
 ###Content=====================================================================
+def count_result_scores(res_dict, top=5):
+    holder_acts_set = set()
+    holder_acts = []
+    for key in res_dict:
+        val = res_dict[key]
+        reqs = [val[i][0]+' '+val[i][1] for i in range(top)]
+        for req in reqs:
+            holder_acts_set.add(req)
+        holder_acts.extend(reqs)
+    acts_score = {}
+    for act_req in holder_acts_set:
+        acts_score[act_req] = holder_acts.count(act_req)
+    return sorted(
+        [[key_dct, value] for key_dct, value in acts_score.items()],
+        key=lambda x: x[1],
+        reverse=True
+    )
+
 def start_up(concls):
     '''Starts iterations on data'''
     outter_holder = []
@@ -23,7 +47,7 @@ def start_up(concls):
         )
         t1 = time()
         outter_holder.append(
-            (elly.count_result_scores(elly.aggregate_model(concl), top=5))
+            (count_result_scores(elly.aggregate_model(concl), top=5))
         )
     print(
         (
@@ -90,7 +114,7 @@ def print_output_to_console(path):
     }
     dct = {key:0 for key in range(1,8)}
     res_tot = rwtool.load_pickle(path)
-    counted = elly.count_result_scores(res_tot)
+    counted = count_result_scores(res_tot)
     for i in counted:
         if len(re.split(' от ', i[0])) < 2:
             print(i[0], i[1])
@@ -106,9 +130,70 @@ def print_output_to_console(path):
             print('{:-<43s} :: {:<10s} :: {:-<35} :: {:>2d}'.format(court, date2, case[1:],i[1]))
     for i in range(7, 0, -1):
         print('with rank {} :: total :: {}'.format(i, dct[i]))
+    total_greater_3 = 0
+    for key in dct:
+        if key >= 3:
+            total_greater_3 += dct[key]
+    print('with rank 3 or greater :: {}'.format(total_greater_3))
+
+def print_output_to_console_2(file_name1, file_name2, file_name3=None):
+    import re
+    months = {
+        'января':'01','февраля':'02',
+        'марта':'03','апреля':'04','мая':'05',
+        'июня':'06','июля':'07','августа':'08',
+        'сентября':'09','октября':'10','ноября':'11',
+        'декабря':'12'
+    }
+    if file_name3:
+        dir_path = fdp()
+        path1 = dir_path+'/{}'.format(file_name1)
+        path2 = dir_path+'/{}'.format(file_name2)
+        path3 = dir_path+'/{}'.format(file_name3)
+        holder1 = count_result_scores(rwtool.load_pickle(path1))
+        holder2 = count_result_scores(rwtool.load_pickle(path2))
+        holder3 = count_result_scores(rwtool.load_pickle(path3))
+        holder_all = holder1+holder2+holder3
+    else:
+        dir_path = fdp()
+        path1 = dir_path+'/{}'.format(file_name1)
+        path2 = dir_path+'/{}'.format(file_name2)
+        holder1 = count_result_scores(rwtool.load_pickle(path1))
+        holder2 = count_result_scores(rwtool.load_pickle(path2))
+        holder_all = holder1+holder2
+    all_acts = [line[0] for line in holder_all]
+    dct_all_acts = {act_name:[] for act_name in all_acts}
+    for ind, act in enumerate(all_acts):
+        dct_all_acts[act].append(holder_all[ind][1])
+    counted = [(act, max(ranks)) for act,ranks in dct_all_acts.items()]
+    dct_rank = {key:0 for key in range(1,8)}
+    for i in counted:
+        if len(re.split(' от ', i[0])) < 2:
+            print(i[0], i[1])
+        else:
+            court, req = re.split(' от ', i[0])
+            _, date, case = re.split(r'([0-9]{1,2} [А-я]+? [0-9]{4} г.)', req)
+            spl_date = date.split(' ')
+            spl_date[1] = months[spl_date[1]]
+            if len(spl_date[0]) == 1:
+                spl_date[0] = '0'+spl_date[0]
+            date2 = '.'.join(spl_date[:-1])
+            dct_rank[i[1]] +=1
+            print('{:-<43s} :: {:<10s} :: {:-<35} :: {:>2d}'.format(court, date2, case[1:],i[1]))
+    for i in range(7, 0, -1):
+        print('with rank {} :: total :: {}'.format(i, dct_rank[i]))
+    total_greater_3 = 0
+    for key in dct_rank:
+        if key >= 3:
+            total_greater_3 += dct_rank[key]
+    print('with rank 3 or greater :: {}'.format(total_greater_3))
 
 def export_court_reqs(file_name):
-    DB_load = elly.DB_CONNECTION
+    DB_load = mysqlite.DataBase(
+        raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
+        base_name='TNBI',
+        tb_name=True
+    )
     TA = DB_load.total_rows()
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
@@ -117,7 +202,7 @@ def export_court_reqs(file_name):
         for row in batch:
             ind, court, req, _, _, _, _, _ = row
             holder.append([ind, court, req])
-    elly.rwtool.write_text_to_csv(
+    rwtool.write_text_to_csv(
         'C:/Users/EA-ShevchenkoIS/TextProcessing/Results/{}.txt'.format(file_name),
         holder
     )

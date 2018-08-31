@@ -23,7 +23,7 @@ from sentan.stringbreakers import (
 )
 from sentan.textproc.scorer import score
 
-__version__ = 0.4
+__version__ = 0.5
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
@@ -35,12 +35,6 @@ TOTAL_PARS = rwtool.load_pickle(
 STPW = rwtool.load_pickle(
     r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
 )
-DB_CONNECTION = mysqlite.DataBase(
-            raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-            base_name='TNBI',
-            tb_name=True
-)
-TOTAL_ACTS = DB_CONNECTION.total_rows()
 
 def aggregate_model(raw_concl,
                     par_len=140):
@@ -95,7 +89,11 @@ def aggregate_model(raw_concl,
     local_cleaner_m2 = local_cleaner_m3 = local_cleaner_m5 = ctrsaib
     local_cleaner_m6 = ctrsabs
     #Initiate DB connection:
-    DB_load = DB_CONNECTION
+    DB_load = mysqlite.DataBase(
+        raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
+        base_name='TNBI',
+        tb_name=True
+    )
     TA = DB_load.total_rows()
     print('Total acts num: {}'.format(TA))
     print('Total pars num: {}'.format(TA_pars))
@@ -217,24 +215,6 @@ def aggregate_model(raw_concl,
         'YA':holder_YA
     }
     return holders
-
-def count_result_scores(res_dict, top=5):
-    holder_acts_set = set()
-    holder_acts = []
-    for key in res_dict:
-        val = res_dict[key]
-        reqs = [val[i][0]+' '+val[i][1] for i in range(top)]
-        for req in reqs:
-            holder_acts_set.add(req)
-        holder_acts.extend(reqs)
-    acts_score = {}
-    for act_req in holder_acts_set:
-        acts_score[act_req] = holder_acts.count(act_req)
-    return sorted(
-        [[key_dct, value] for key_dct, value in acts_score.items()],
-        key=lambda x: x[1],
-        reverse=True
-    )
 
 
 ###Testing=====================================================================
