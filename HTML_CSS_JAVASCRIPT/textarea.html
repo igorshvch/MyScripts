@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+
+    <head>
+
+        <meta charset="utf-8">
+
+        <title>Проба тега textarea</title>
+
+    </head>
+
+    <body>
+
+        <div>
+            <p>Inter your text here:</p>
+        </div>
+        <div>
+            <textarea rows='10' cols='100' id='data'>
+            </textarea>
+        </div>
+        <div style="padding: 5px;">
+            <button onclick="proceed()">Обработать!</button>
+            <button onclick="cleanup()">Очистить!</button>
+        </div>
+        <div id='empty'>
+            <ol id='empty_list'></ol>
+        </div>
+
+    </body>
+
+    <script>
+        function proceed() {
+            var text = document.getElementById('data').textContent;
+            var spl = text.split('\n');
+            var container = document.getElementById('empty_list');
+            for(var i = 0; i < spl.length; i++) {
+                var entry = document.createElement('li');
+                entry.appendChild(document.createTextNode(spl[i]));
+                container.appendChild(entry);
+            }
+        }
+        function cleanup() {
+            document.getElementById('data').innerHTML = ''
+            document.getElementById('empty').innerHTML = ''
+        }
+    </script>
+
+</html>

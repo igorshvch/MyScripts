@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+            <title>Tables</title>
+            <style> /* This is a CSS style sheet: it adds style to the program output */
+                .output { font-weight: bold; } /* Calculated values in bold */
+                #payment { text-decoration: underline; } /* For element with id="payment" */
+                #graph { border: solid black 1px; } /* Chart has a simple border */
+                th, td { vertical-align: top; } /* Don't center table cells */
+            </style>
+        </head>
+        <body>
+            <!--
+            This is an HTML table with <input> elements that allow the user to enter data
+            and <span> elements in which the program can display its results.
+            These elements have ids like "interest" and "years". These ids are used
+            in the JavaScript code that follows the table. Note that some of the input
+            elements define "onchange" or "onclick" event handlers. These specify strings
+            of JavaScript code to be executed when the user enters data or clicks.
+            -->
+            <table id=graph>
+                <tr>
+                        <th id=graph>Example:</th><th id=graph>2:</th><th id=graph>3:</th>
+                        <th id=graph>4:</th><th id=graph>5:</th><th id=graph width='75'>6:</th>
+                        <th id=graph>7:</th><th id=graph>8:</th><th id=graph>9:</th>
+                        <th id=graph>10:</th><th id=graph>11:</th><th id=graph>12:</th>
+                        <th id=graph>13:</th><th id=graph>14:</th><th id=graph>15:</th>
+                        <th id=graph>16:</th><th id=graph>17:</th>
+                </tr>
+                <tr>
+                        <td id=graph>London</td><td id=graph>is</td><td id=graph>the</td><td id=graph>capital</td>
+                        <td id=graph>of</td><td><input size='15'></td><td id=graph>Britain</td><td id=graph>or</td>
+                        <td id=graph>the</td><td id=graph>United</td><td id=graph>Kingdom</td><td id=graph>of</td>
+                        <td id=graph>England,</td><td id=graph>Wels</td><td id=graph>and</td><td id=graph>Notrhen</td>
+                        <td id=graph>Ireland</td>
+                </tr>
+                <tr>
+                        <td id=graph>1</td><td id=graph>2</td><td id=graph>3</td><td id=graph>4</td>
+                        <td id=graph>5</td><td><button>Submit!</button></td><td id=graph>7</td><td id=graph>8</td>
+                        <td id=graph>9</td><td id=graph>10</td><td id=graph>11</td><td id=graph>12</td>
+                        <td id=graph>13</td><td id=graph>14</td><td id=graph>15</td><td id=graph>16</td>
+                        <td id=graph>17</td>
+                </tr>
+            </table>
+            <!-- The rest of this example is JavaScript code in the <script> tag below -->
+            <!-- Normally, this script would go in the document <head> above but it -->
+            <!-- is easier to understand here, after you've seen its HTML context. -->
+            <script>
+            "use strict"; // Use ECMAScript 5 strict mode in browsers that support it
+            /*
+            * This script defines the calculate() function called by the event handlers
+            * in HTML above. The function reads values from <input> elements, calculates
+            * loan payment information, displays the results in <span> elements. It also
+            * saves the user's data, displays links to lenders, and draws a chart.
+            */
