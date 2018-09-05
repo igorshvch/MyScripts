@@ -6,17 +6,18 @@ from time import time
 #my modules
 import sentan.lowlevel.mypars as mypars
 from sentan import mysqlite
-from sentan.dirman import DIR_STRUCT
+from sentan import dirman
 from sentan.stringbreakers import RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
 from sentan.lowlevel import textsep
 from sentan.lowlevel.texttools import (
     create_indexdct_from_tokens_list, indexdct_to_string #, create_bigrams
 )
 from sentan.lowlevel.rwtool import (
-    collect_exist_file_paths, load_text, save_object, load_pickle
+    collect_exist_files, load_text, save_object, load_pickle
 )
+from sentan.gui.dialogs import ffp, fdp, pmb
 
-__version__ = 0.3
+__version__ = '0.4.2'
 
 ###Content=====================================================================
 DataStore1 = mypars.ParsDataStore()
@@ -34,15 +35,15 @@ def raw_files_to_db(load_dir_name='',
     tokenize = mypars.tokenize
     separator = RAWPAR_B
     #Initiate concls loading:
-    path = DIR_STRUCT['RawText'].joinpath(load_dir_name)
+    path = dirman.DIR_STRUCT['RawText'].joinpath(load_dir_name)
     raw_files = (
         load_text(p) for p
-        in collect_exist_file_paths(top_dir=path, suffix='.txt')
+        in collect_exist_files(top_dir=path, suffix='.txt')
     )   
     #Initiate DB connection:
     DB_save = mysqlite.DataBase(
-        dir_name='TextProcessing/DivActs/',
-        base_name='DivActs'
+        dir_name= dirman.DIR_STRUCT['DivActs'],
+        base_name='DivActs_'+dirman.TODAY
     )
     DB_save.create_tabel(
         'DivActs',
@@ -94,13 +95,13 @@ def raw_files_to_db(load_dir_name='',
     DS.create_lem_map()
     save_object(
         DS.lem_map,
-        ('lem_map_' + str(dt.date(dt.now()))),
-        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+        dirman.TODAY + '_lem_map',
+        str(dirman.DIR_STRUCT['StatData'])
     )
     save_object(
         TOTAL_ACTS,
-        'total_acts',
-        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+        dirman.TODAY + '_total_acts',
+        str(dirman.DIR_STRUCT['StatData'])
     )
 
 def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
@@ -108,29 +109,31 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     t0 = time()
     TA = TOTAL_ACTS
     OUTPUT = TA//10 if TA > 10 else TA//2
-    lem_dict = load_pickle(str(DIR_STRUCT['StatData'].joinpath(lem_dict_name)))
+    lem_dict = load_pickle(
+        str(dirman.DIR_STRUCT['StatData'].joinpath(lem_dict_name))
+    )
     sep_par = RAWPAR_B
     sep_toklem = TOKLEM_B
-    #sep_bigr = BGRSEP_B
     sep_dctitm = DCTITM_B
     lemmed_pars_counter = 0
     #Initialise local funcs
     tokenize = mypars.tokenize
-    #cr2gr = create_bigrams
     create_indexdct = create_indexdct_from_tokens_list
     indexdct_tostr = indexdct_to_string
     #Initiate DB connection:
+    pmb('Выберите файл базы данных!')
+    path_db_load = ffp()
     DB_load = mysqlite.DataBase(
-        dir_name='TextProcessing/DivActs/',
-        base_name='DivActs',
+        dir_name=path_db_load.parents[0],
+        base_name=path_db_load.stem,
         tb_name=True
     )
     DB_save = mysqlite.DataBase(
-        dir_name='TextProcessing/TNBI/',
-        base_name='TNBI'
+        dir_name=dirman.DIR_STRUCT['TLI'],
+        base_name='TLI_'+dirman.TODAY
     )
     DB_save.create_tabel(
-        'TNBI',
+        'TLI',
         (
             ('id', 'INTEGER', 'PRIMARY KEY'),
             ('COURT', 'TEXT'),
@@ -138,7 +141,6 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
             ('RAWPARS', 'TEXT'),
             ('DIV', 'TEXT'),
             ('LEM', 'TEXT'),
-            #('BIGRAMS', 'TEXT'),
             ('INDXACT', 'TEXT'),
             ('INDXPAR', 'TEXT')
         )
@@ -188,17 +190,19 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
                 )
             )
         DB_save.insert_data(holder, col_num=8)
-        print(inden+'\t\tBatch was proceed in {:4.5f} seconds'.format(time()-t1))
+        print(
+            inden+'\t\tBatch was proceed in {:4.5f} seconds'.format(time()-t1)
+        )
     print(inden+'Total time costs: {}'.format(time()-t0))
     save_object(
         DS.vocab,
-        'vocab_nw',
-        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+        dirman.TODAY + '_vocab_nw',
+        str(dirman.DIR_STRUCT['StatData'])
     )
     save_object(
         lemmed_pars_counter,
-        'total_lem_pars',
-        r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData'
+        dirman.TODAY + '_total_lem_pars',
+        str(dirman.DIR_STRUCT['StatData'])
     )
 
 

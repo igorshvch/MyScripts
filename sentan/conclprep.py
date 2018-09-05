@@ -1,8 +1,10 @@
 import re
 from collections import deque
-from sentan.gui.dialogs import find_file_path as ffp
+from sentan.gui.dialogs import ffp, fdp, pmb
+from sentan import dirman
 
-__version__ = 0.1
+
+__version__ = '0.2'
 
 ###Content=====================================================================
 QUEST = '[0-9] [.0-9]+ ?[.0-9]*? .+'
@@ -20,12 +22,13 @@ PATTERNS = {
 }
 
 with open(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\result_ppn.dat',
+    str(dirman.DIR_STRUCT['Root'].joinpath('result_ppn.dat')),
     mode='r',
     encoding='utf_8') as fle:
     RAW_TEXT = fle.read()
 
 def clean_input_concls():
+    pmb('Выберите файл с выводами')
     path = ffp()
     with open(path, mode='r') as fle:
         raw_text = fle.read()
@@ -174,6 +177,20 @@ def find_input_concl_in_stored_ones(lst_of_concls, store):
                 holder.append(item)
                 holder_ind.append(ind)
     return holder, dct, holder_ind
+
+def main():
+    from writer import writer
+    list_of_input_concls = clean_input_concls()
+    list_of_processed_concls = (
+        dct_to_list_of_concls(clean_output_concls())
+    )
+    result, dct, _ = find_input_concl_in_stored_ones(
+        list_of_input_concls,
+        list_of_processed_concls
+    )
+    writer(dct.items(), 'found_concls', mode='w')
+    return result
+
 
 
 ###Testing=====================================================================

@@ -2,11 +2,12 @@ import csv
 import pathlib as pthl
 from time import time
 
-GLOB_ENC = 'cp1251'
-__version__ = 0.1
+__version__ = '0.2'
 
 ###Content=====================================================================
-def collect_exist_file_paths(top_dir, suffix=''):
+GLOB_ENC = 'cp1251'
+
+def collect_exist_files(top_dir, suffix=''):
     holder = []
     def inner_func(top_dir, suffix):
         p = pthl.Path(top_dir)
@@ -14,6 +15,33 @@ def collect_exist_file_paths(top_dir, suffix=''):
         store = [path_obj for path_obj in p.iterdir()]
         for path_obj in store:
             if path_obj.is_dir():
+                inner_func(path_obj, suffix)
+            elif path_obj.suffix == suffix:
+                holder.append(path_obj)
+    inner_func(top_dir, suffix)
+    return sorted(holder)
+
+def collect_exist_dirs(top_dir):
+    holder = []
+    def inner_func(top_dir):
+        p = pthl.Path(top_dir)
+        nonlocal holder
+        store = [path_obj for path_obj in p.iterdir() if path_obj.is_dir()]
+        for path_obj in store:
+            holder.append(path_obj)
+            inner_func(path_obj)
+    inner_func(top_dir)
+    return sorted(holder)
+
+def collect_exist_files_and_dirs(top_dir, suffix=''):
+    holder = []
+    def inner_func(top_dir, suffix):
+        p = pthl.Path(top_dir)
+        nonlocal holder
+        store = [path_obj for path_obj in p.iterdir()]
+        for path_obj in store:
+            if path_obj.is_dir():
+                holder.append(path_obj)
                 inner_func(path_obj, suffix)
             elif path_obj.suffix == suffix:
                 holder.append(path_obj)

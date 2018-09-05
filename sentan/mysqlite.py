@@ -1,6 +1,9 @@
 import sqlite3
 import pathlib as pthl
 
+__version__ = '0.2'
+
+###Content=====================================================================
 PK = 'PRIMARY KEY'
 
 class DataBase():
@@ -226,7 +229,18 @@ class DataBase():
         return self.cur.execute("SELECT Count(*) FROM TNBI").fetchone()[0]
     
     
-
-    
-
-    
+###Testing=====================================================================
+if __name__ == '__main__':
+    import sys
+    try:
+        sys.argv[1]
+        if sys.argv[1] == '-v':
+            print('Module name: {}'.format(sys.argv[0]))
+            print('Version info:', __version__)
+        elif sys.argv[1] == '-t':
+            print('Testing mode!')
+            print('Not implemented!')
+        else:
+            print('Not implemented!')
+    except IndexError:
+        print('Mode var wasn\'t passed!')
