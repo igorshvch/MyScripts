@@ -6,9 +6,12 @@ from .gui.dialogs import (
     find_file_path as ffp,
     find_directory_path as fdp
 )
-from . import mysqlite
+from . import mysqlite, dirman
+from .gui.dialogs import (
+    ffp, fdp, pmb, giv, APB
+)
 
-__version__ = 0.3
+__version__ = '0.3.1'
 
 ###Content=====================================================================
 def count_result_scores(res_dict, top=5):
@@ -74,7 +77,7 @@ def write_res(concls, results, dir_name=None):
         )
 
 def collect_results_from_csv(path_to_folder):
-    paths = rwtool.collect_exist_file_paths(path_to_folder, suffix='.txt')
+    paths = rwtool.collect_exist_files(path_to_folder, suffix='.txt')
     global_trash_holder = {}
     global_valid_holder = {}
     for p in paths:
@@ -206,6 +209,46 @@ def export_court_reqs(file_name):
         'C:/Users/EA-ShevchenkoIS/TextProcessing/Results/{}.txt'.format(file_name),
         holder
     )
+
+def write_output_to_file():
+    import re
+    pmb('Select file with concls data')
+    path_to_concls = ffp()
+    if path_to_concls[-4:] == '.txt':
+        with open(path_to_concls, mode='r') as fle:
+            text = fle.read().strip('\n')
+        concls = text.split('\n')
+        concls = [[item[0], int(item[1])] for item in concls]
+    else:
+        concls = rwtool.load_pickle(path_to_concls)
+    pmb('Select load and save directories')
+    path_to_load = fdp()
+    path_to_save = fdp()
+    paths = rwtool.collect_exist_files(path_to_load)
+    total_input_files = len(paths)
+    digits_num = len(str(total_input_files))
+    formatter = rwtool.form_string_numeration(digits_num)
+    res_gen = ((ind, rwtool.load_pickle(p)) for ind, p in enumerate(paths))
+    for ind, res in res_gen:
+        counted = count_result_scores(res)
+        holder = []
+        holder.append(concls[ind])
+        for item in counted:
+            if len(re.split(' от ', item[0])) < 2:
+                print(item[0], item[1])
+                continue
+            else:
+                if item[1] >= 3:
+                    holder.append(
+                        '{:<100s} :: {:>2d}'.format(item[0], item[1])
+                    )
+        try:
+            rwtool.write_text(
+                '\n'.join(holder),
+                path_to_save+'/'+formatter.format(ind)+'_RESULT'
+            )
+        except:
+            print(holder)
 
 
 ###Testing=====================================================================

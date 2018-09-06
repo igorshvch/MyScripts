@@ -2,7 +2,7 @@ import csv
 import pathlib as pthl
 from time import time
 
-__version__ = '0.2'
+__version__ = '0.2.5'
 
 ###Content=====================================================================
 GLOB_ENC = 'cp1251'
@@ -54,6 +54,8 @@ def load_text(path):
     return text
 
 def write_text(text, path):
+    if path[-4:] != '.txt':
+        path += '.txt'
     with open(path, mode='w', encoding=GLOB_ENC) as fle:
         fle.write(text)
 
@@ -96,6 +98,11 @@ def load_pickle(path):
     with open(path, 'rb') as fle:
         data = pickle.load(fle)
     return data
+
+def form_string_numeration(digits_num):
+    st = ['{:0>', 'd}']
+    form = str(digits_num).join(st)
+    return form
 
 ###Testing=====================================================================
 if __name__ == '__main__':

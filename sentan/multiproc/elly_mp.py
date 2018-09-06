@@ -10,7 +10,7 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite
+from sentan import mysqlite, dirman
 from sentan.textproc import myvect as mv
 from sentan.lowlevel import rwtool
 from sentan.lowlevel.texttools import (
@@ -30,11 +30,10 @@ from sentan.stringbreakers import (
 )
 from sentan.textproc.scorer import score
 from sentan.gui.dialogs import (
-    find_file_path as ffp,
-    find_directory_path as fdp
+    ffp, fdp, pmb, giv
 )
 
-__version__ = 0.3
+__version__ = '0.3.5'
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
@@ -241,8 +240,8 @@ def mp_queue_fill(concl, inner_queue, diapason, lock):
             'PID: {:>7}, {:>28s}'.format(pid, mp_queue_fill.__name__)
         )
         DB_load = mysqlite.DataBase(
-            raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-            base_name='TNBI',
+            raw_path = str(dirman.DIR_STRUCT['TLI']),
+            base_name='TLI',
             tb_name=True
         )
     TA = TOTAL_ACTS
@@ -300,7 +299,7 @@ def mp_writer(inner_queue, lock, diapason, indx, save_path):
             end_res[key] = sorted(results[key], key=lambda x:x[2])
     rwtool.save_object(
         end_res,
-        str(indx) + '_TEST_RES',
+        indx + '_TEST_RES',
         save_path
     )
     print('\t\t\tPID: {:>7}. Results are written to file'.format(pid)) 
@@ -310,7 +309,7 @@ def print_cust(message):
     print(message)
     print(92*'=')
 
-def main(raw_concl, indx, save_path, local_lock=LOCK):
+def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
     #Initialise local vars=======================
     pid = os.getpid()
     concl_lemmed = my_lem(my_tok(raw_concl))
@@ -321,7 +320,7 @@ def main(raw_concl, indx, save_path, local_lock=LOCK):
     t0 = time()
     TA_pars = TOTAL_PARS
     #===========================================
-    PROC_UNITS = CPUS+1
+    PROC_UNITS = cpus
     #Tests showed that 5 processing units compute data with optimal speed
     #acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     #gen = ((concl_lemmed, batch) for batch in acts_gen)
@@ -364,23 +363,38 @@ def main(raw_concl, indx, save_path, local_lock=LOCK):
     )
 
 def nextiter(path_to_file=None, local_lock=LOCK):
+    message1 = (
+        'Chose data file and direcroty to save results'
+    )
+    pmb(message1)
     if not path_to_file:
         path = ffp()
     else:
         path = path_to_file
     lock = local_lock
     save_path = fdp()
+    #message2 = (
+    #    'Number of CPUS: {:>2}.'.format(CPUS)
+    #    +'\nSelect number of worker processes:'
+    #)
+    cpus = 5 #giv(message2)
     with lock:
         print(92*'=')
         print(92*'=')
         print(92*'=')
         print('ITERATION BEGINS!')
-        print(path)
-        print(save_path+'\n\n')
+        print('PATH:', path)
+        print('SAVE PATH:', save_path)
+        print('Worker processes total: {}'.format(cpus))
     t0 = time()
-    with open(path, mode='r') as fle:
-        text = fle.read().strip('\n')
-    concls = text.split('\n')
+    if path[-4:] == '.txt':
+        with open(path, mode='r') as fle:
+            text = fle.read().strip('\n')
+        concls = text.split('\n')
+    else:
+        concls = rwtool.load_pickle(path)    
+    digits_num = len(str(len(concls)))
+    formatter = rwtool.form_string_numeration(digits_num)
     for ind, concl in enumerate(concls):
         with lock:
             print(
@@ -390,7 +404,9 @@ def nextiter(path_to_file=None, local_lock=LOCK):
                 +36*'!'
                 +'\n\n'
             )
-        main(concl, ind, save_path)
+        main(
+            concl, formatter.format(ind), save_path, cpus, local_lock=lock
+        )
     end_time = time()-t0
     with lock:
         print(
