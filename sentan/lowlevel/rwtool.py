@@ -2,7 +2,7 @@ import csv
 import pathlib as pthl
 from time import time
 
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 
 ###Content=====================================================================
 GLOB_ENC = 'cp1251'
@@ -102,6 +102,11 @@ def load_pickle(path):
 def form_string_numeration(digits_num):
     st = ['{:0>', 'd}']
     form = str(digits_num).join(st)
+    return form
+
+def form_string_pattern(char, typ, fields):
+    st = ['{:%s>' % char, '%s}' % typ]
+    form = str(fields).join(st)
     return form
 
 ###Testing=====================================================================

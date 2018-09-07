@@ -8,7 +8,7 @@ from .gui.dialogs import (
 )
 from . import mysqlite, dirman
 from .gui.dialogs import (
-    ffp, fdp, pmb, giv, APB
+    ffp, fdp, pmb, giv
 )
 
 __version__ = '0.3.1'
