@@ -168,7 +168,11 @@ def print_output_to_console_2(file_name1, file_name2, file_name3=None):
     dct_all_acts = {act_name:[] for act_name in all_acts}
     for ind, act in enumerate(all_acts):
         dct_all_acts[act].append(holder_all[ind][1])
-    counted = [(act, max(ranks)) for act,ranks in dct_all_acts.items()]
+    counted = sorted(
+        [(act, max(ranks)) for act,ranks in dct_all_acts.items()],
+        key=lambda x: x[1],
+        reverse=True
+    )
     dct_rank = {key:0 for key in range(1,8)}
     for i in counted:
         if len(re.split(' от ', i[0])) < 2:

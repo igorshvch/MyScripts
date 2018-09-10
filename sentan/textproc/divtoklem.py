@@ -17,7 +17,7 @@ from sentan.lowlevel.rwtool import (
 )
 from sentan.gui.dialogs import ffp, fdp, pmb
 
-__version__ = '0.4.2'
+__version__ = '0.4.3'
 
 ###Content=====================================================================
 DataStore1 = mypars.ParsDataStore()
@@ -107,7 +107,8 @@ def raw_files_to_db(load_dir_name='',
 def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     #Initialise local vars
     t0 = time()
-    TA = TOTAL_ACTS
+    pmb('ВЫберите файл с количеством актов')
+    TA = load_pickle(ffp())
     OUTPUT = TA//10 if TA > 10 else TA//2
     lem_dict = load_pickle(
         str(dirman.DIR_STRUCT['StatData'].joinpath(lem_dict_name))
@@ -122,7 +123,7 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     indexdct_tostr = indexdct_to_string
     #Initiate DB connection:
     pmb('Выберите файл базы данных!')
-    path_db_load = ffp()
+    path_db_load = dirman.pthl.Path(ffp())
     DB_load = mysqlite.DataBase(
         dir_name=path_db_load.parents[0],
         base_name=path_db_load.stem,

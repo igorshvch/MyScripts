@@ -364,7 +364,7 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
 
 def nextiter(path_to_file=None, local_lock=LOCK):
     message1 = (
-        'Chose data file and direcroty to save results'
+        'Chose concls FILE and DIRECTORY to save results'
     )
     pmb(message1)
     if not path_to_file:
