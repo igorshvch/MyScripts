@@ -36,7 +36,6 @@ def writer(iterable_object,
     else:
         with open(inner_path, mode=mode) as file:
             file.write(iterable_object)
-<<<<<<< HEAD
     if verbose:
         print(
             'File \'{}\' was written in mode \'{}\''.format(
@@ -71,16 +70,3 @@ def find_files(top_dir, suffix=''):
                     holder.append(path_obj)
         inner_func(top_dir, suffix)
         return sorted(holder)
-=======
-    print('OK')
-
-def recode(root_path, paths, verbose=True):
-    root_path = pthl.Path(root_path)
-    for path in paths:
-        with open(root_path.joinpath(path), mode='r', encoding='koi8_r') as file:
-            text = file.read()
-        with open(root_path.joinpath(path), mode='w', encoding='cp1251') as file:
-            file.write(text)
-        if verbose:
-            print("File '{}' recoded!".format(path))
->>>>>>> f1aeaa41aeb4415bce1b09377a33d6cf382c7e3e
