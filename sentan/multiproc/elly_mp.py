@@ -33,7 +33,7 @@ from sentan.gui.dialogs import (
     ffp, fdp, pmb, giv
 )
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
@@ -362,7 +362,7 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
         +'sec: {:>9.5f}'.format(end_time2)
     )
 
-def nextiter(path_to_file=None, local_lock=LOCK):
+def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
     message1 = (
         'Chose concls FILE and DIRECTORY to save results'
     )
@@ -377,7 +377,7 @@ def nextiter(path_to_file=None, local_lock=LOCK):
     #    'Number of CPUS: {:>2}.'.format(CPUS)
     #    +'\nSelect number of worker processes:'
     #)
-    cpus = 5 #giv(message2)
+    cpus = int(CP_UNITS)
     with lock:
         print(92*'=')
         print(92*'=')
@@ -431,7 +431,7 @@ if __name__ == '__main__':
             print('Testing mode!')
             print('Not implemented!')
         elif sys.argv[1] == '-r':
-            nextiter()
+            nextiter(CP_UNITS=sys.argv[2])
         else:
             print('Not implemented!')
     except IndexError:
