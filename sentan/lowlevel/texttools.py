@@ -122,6 +122,16 @@ def string_to_indexdct(list_of_strings):
             par_dict[key] = set([int(i) for i in vals.split(sep_index)])
     return par_dict
 
+def form_string_numeration(digits_num):
+    st = ['{:0>', 'd}']
+    form = str(digits_num).join(st)
+    return form
+
+def form_string_pattern(char, typ, fields):
+    st = ['{:%s>' % char, '%s}' % typ]
+    form = str(fields).join(st)
+    return form
+
 
 ###Testing=====================================================================
 if __name__ == '__main__':

@@ -42,6 +42,7 @@ def court_decisions_separator(text, sep_type=SEP_TYPE, inden=''):
         '{} acts were found'.format(len(separated_acts)),
     )
     return separated_acts
+    
 
 ###Testing=====================================================================
 if __name__ == '__main__':

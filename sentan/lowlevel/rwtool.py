@@ -1,11 +1,22 @@
 import csv
 import pathlib as pthl
 from time import time
+from sentan import shared
+from sentan.gui.dialogs import ffp, fdp
 
 __version__ = '0.2.6'
 
 ###Content=====================================================================
 GLOB_ENC = 'cp1251'
+
+SAVE_LOAD_OPTIONS ={
+        'RootCommon': shared.GLOBS['root_struct']['Common'],
+        'RootTemp':shared.GLOBS['root_struct']['TEMP'],
+        'ProjStatData':shared.GLOBS['proj_struct']['TEMP'],
+        'ProjRes':shared.GLOBS['proj_struct']['Results'],
+        'ProjConcls':shared.GLOBS['proj_struct']['Conclusions'],
+        'ProjTemp':shared.GLOBS['proj_struct']['_TEMP']
+    }
 
 def collect_exist_files(top_dir, suffix=''):
     holder = []
@@ -48,7 +59,7 @@ def collect_exist_files_and_dirs(top_dir, suffix=''):
     inner_func(top_dir, suffix)
     return sorted(holder)
 
-def load_text(path):
+def read_text(path):
     with open(path, mode='r', encoding=GLOB_ENC) as fle:
         text = fle.read()
     return text
@@ -59,7 +70,7 @@ def write_text(text, path):
     with open(path, mode='w', encoding=GLOB_ENC) as fle:
         fle.write(text)
 
-def write_text_to_csv(full_path,
+def write_iter_to_csv(full_path,
                       iter_txt_holder,
                       header=None,
                       zero_string=None):
@@ -81,17 +92,12 @@ def write_text_to_csv(full_path,
         for row in iter_txt_holder:
             writer.writerow(row)
 
-def write_pickle(py_obj, path):
+def save_pickle(py_obj, path):
     import pickle
     with open(path, mode='wb') as file_name:
         pickle.dump(py_obj,
                     file_name,
                     protocol=pickle.HIGHEST_PROTOCOL)
-
-def save_object(py_obj, file_name, full_path):
-    path = pthl.Path()
-    path = path.joinpath(full_path, file_name)
-    write_pickle(py_obj, path)
         
 def load_pickle(path):
     import pickle
@@ -99,15 +105,34 @@ def load_pickle(path):
         data = pickle.load(fle)
     return data
 
-def form_string_numeration(digits_num):
-    st = ['{:0>', 'd}']
-    form = str(digits_num).join(st)
-    return form
+def save(py_obj, name, to=None):
+    path = SAVE_LOAD_OPTIONS[to]
+    save_pickle(py_obj, str(path.joinpath(name)))
 
-def form_string_pattern(char, typ, fields):
-    st = ['{:%s>' % char, '%s}' % typ]
-    form = str(fields).join(st)
-    return form
+def load(file=None, where=None):
+    if not file:
+        path = ffp()
+        if path[-4:] == '.txt':
+            return read_text(path)
+        else:
+            return load_pickle(path)
+    else:
+        if file[:3] == 'C:/' or file[:3] == 'C:\\':
+            if file[-4:] == '.txt':
+                return read_text(file)
+            else:
+                return load_pickle(file)
+        else:
+            if not where:
+                raise TypeError("'where' argument needs to be passed!")
+            elif file[-4:] == '.txt':
+                path = SAVE_LOAD_OPTIONS[where]
+                return read_text(str(path.joinpath(file)))
+            else:
+                path = SAVE_LOAD_OPTIONS[where]
+                return load_pickle(str(path.joinpath(file)))
+            
+
 
 ###Testing=====================================================================
 if __name__ == '__main__':

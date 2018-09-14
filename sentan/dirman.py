@@ -1,50 +1,49 @@
 import pathlib as pthl
 import time
+from . import shared
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 ###Content=====================================================================
-DIR_STRUCT = {
+DIR_STRUCT_ROOT = {
     'Root': (pthl.Path().home().joinpath('TextProcessing')),
     'RawText': (pthl.Path().home().joinpath('TextProcessing','RawText')),
-    'Concls': (pthl.Path().home().joinpath('TextProcessing', 'Conclusions')),
-    'StatData': (pthl.Path().home().joinpath('TextProcessing', 'StatData')),
-    'Res': (pthl.Path().home().joinpath('TextProcessing', 'Results')),
-    'DivActs': (pthl.Path().home().joinpath('TextProcessing', 'DivActs')),
-    'TLI':(pthl.Path().home().joinpath('TextProcessing', 'TLI')),
-    'TEMP':(pthl.Path().home().joinpath('TextProcessing', '_TEMP'))
+    'Projects': (pthl.Path().home().joinpath('TextProcessing','Projects')),
+    'TEMP':(pthl.Path().home().joinpath('TextProcessing', '_TEMP')),
+    'Common':(pthl.Path().home().joinpath('TextProcessing', 'CommonData'))
 }
+
 TODAY = time.strftime(r'%Y-%m-%d')
 
-def create_dirs(dir_struct, sub_dir=''):
-    paths = []
-    for key in dir_struct.keys():
-        if key != 'MainRoot':
-            path = dir_struct[key].joinpath(sub_dir)
+def create_project_dirs(project_name, dir_struct=DIR_STRUCT_ROOT):
+    inner_dirs = ['ActsBase', 'StatData', 'Conclusions', 'Results', '_TEMP']
+    project_path = dir_struct['Projects'].joinpath(TODAY+'_'+project_name)
+    shared.GLOBS['proj_path'] = project_path
+    paths_to_inner_dirs = [project_path.joinpath(dr) for dr in inner_dirs]
+    for p in paths_to_inner_dirs:
+        p.mkdir(parents=True, exist_ok=True)
+        shared.GLOBS['proj_struct'][p.name] = (p)
+
+def create_and_register_root_dirs():
+    shared.GLOBS['root_struct']={}
+    for key in DIR_STRUCT_ROOT:
+        path = DIR_STRUCT_ROOT[key]
+        if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
-            paths.append(str(path))
-    print('Created directories:')
-    for strg in sorted(paths):
-        print('\t'+strg)
-    
-def create_one_dir(dir_name, date=False, main_dir=None):
-    if main_dir in DIR_STRUCT and date:
-        path = DIR_STRUCT[main_dir].joinpath(TODAY, dir_name)
-    elif main_dir in DIR_STRUCT and not date:
-        path = DIR_STRUCT[main_dir].joinpath(dir_name)
-    elif main_dir not in DIR_STRUCT and date:
-        path = DIR_STRUCT['Root'].joinpath(TODAY, dir_name)
-    elif main_dir not in DIR_STRUCT and not date:
-        path = DIR_STRUCT['Root'].joinpath(dir_name)
+        shared.GLOBS['root_struct'][key] = path
+
+def create_and_register_new_project():
+    shared.GLOBS['proj_struct']={}
+    if 'proj_name' not in shared.GLOBS:
+        proj_name = input('type project name======>')
+        shared.GLOBS['proj_name'] = proj_name
+        create_project_dirs(project_name=proj_name)
     else:
-        raise TypeError(
-            'Fail to process arguments!'
-            +'\ndir_name={}, date={}, main_dir{}'\
-            .format(dir_name, date, main_dir)
-        )
-    path.mkdir(parents=True, exist_ok=True)
-    print('Created directory:')
-    print('\t'+str(path))
+        print('There is an opened project already: {: >40s}'.format(shared.GLOBS['proj_name']))
+        print('You need to end current session to create new project!')
+
+create_and_register_root_dirs()
+create_and_register_new_project()
 
 
 ###Testing=====================================================================
@@ -58,10 +57,6 @@ if __name__ == "__main__":
         elif sys.argv[1] == '-t':
             print('Testing mode!')
             print('Not implemented!')
-        elif sys.argv[1] == '-create':
-            create_dirs(DIR_STRUCT)
-        elif sys.argv[1] == '-create_sd':
-            create_dirs(DIR_STRUCT, sub_dir=sys.argv[2])
         else:
             print('Not implemented!')
     except IndexError:
