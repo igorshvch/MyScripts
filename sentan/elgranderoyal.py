@@ -3,7 +3,7 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite
+from sentan import shared
 from sentan.textproc import myvect as mv
 from sentan.lowlevel import rwtool
 from sentan.lowlevel.texttools import (
@@ -23,17 +23,17 @@ from sentan.stringbreakers import (
 )
 from sentan.textproc.scorer import score
 
-__version__ = 0.5
+__version__ = '0.5'
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\vocab_nw'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('vocab_nw'))
 )
 TOTAL_PARS = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_lem_pars'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_lem_pars'))
 )
 STPW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
+    str(shared.GLOBS['root_struct']['CommonData'].joinpath('custom_stpw'))
 )
 
 def aggregate_model(raw_concl,
@@ -89,12 +89,7 @@ def aggregate_model(raw_concl,
     local_cleaner_m2 = local_cleaner_m3 = local_cleaner_m5 = ctrsaib
     local_cleaner_m6 = ctrsabs
     #Initiate DB connection:
-    DB_load = mysqlite.DataBase(
-        raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-        base_name='TNBI',
-        tb_name=True
-    )
-    TA = DB_load.total_rows()
+    DB_load = shared.DB['TLI']
     print('Total acts num: {}'.format(TA))
     print('Total pars num: {}'.format(TA_pars))
     OUTPUT = TA//10 if TA > 10 else TA//2

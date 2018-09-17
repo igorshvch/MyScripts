@@ -3,7 +3,7 @@ import re
 from collections import Counter
 from time import time
 
-__version__ = 0.1
+__version__ = '0.1'
 
 ###pymoprhy2 analyzer instance=================================================
 MORPH = pymorphy2.MorphAnalyzer()

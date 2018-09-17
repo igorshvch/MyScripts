@@ -6,7 +6,7 @@ from sentan.stringbreakers import (
     BGRINR_B, DCTKEY_B, KEYVAL_B, INDEXP_B
 )
 
-__version__ = 0.1
+__version__ = '0.1'
 
 ###Content=====================================================================
 class DataStore():

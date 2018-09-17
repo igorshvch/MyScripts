@@ -1,6 +1,6 @@
 from .lowlevel import rwtool
+from .lowlevel import texttools
 from . import elgranderoyal as elly
-from .lowlevel import rwtool
 from time import time
 from .gui.dialogs import (
     find_file_path as ffp,
@@ -11,7 +11,7 @@ from .gui.dialogs import (
     ffp, fdp, pmb, giv
 )
 
-__version__ = '0.3.1'
+__version__ = '0.3.5'
 
 ###Content=====================================================================
 def count_result_scores(res_dict, top=5):
@@ -69,7 +69,7 @@ def write_res(concls, results, dir_name=None):
         r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\{}'.format(dir_name)
     )
     for idn, item in enumerate(concls):
-        rwtool.write_text_to_csv(
+        rwtool.write_iter_to_csv(
             path+'/res'+str(idn+1)+'.txt',
             results[idn],
             header=['act', 'score'],
@@ -209,7 +209,7 @@ def export_court_reqs(file_name):
         for row in batch:
             ind, court, req, _, _, _, _, _ = row
             holder.append([ind, court, req])
-    rwtool.write_text_to_csv(
+    rwtool.write_iter_to_csv(
         'C:/Users/EA-ShevchenkoIS/TextProcessing/Results/{}.txt'.format(file_name),
         holder
     )
@@ -231,7 +231,7 @@ def write_output_to_file():
     paths = rwtool.collect_exist_files(path_to_load)
     total_input_files = len(paths)
     digits_num = len(str(total_input_files))
-    formatter = rwtool.form_string_numeration(digits_num)
+    formatter = texttools.form_string_numeration(digits_num)
     res_gen = ((ind, rwtool.load_pickle(p)) for ind, p in enumerate(paths))
     for ind, res in res_gen:
         counted = count_result_scores(res)

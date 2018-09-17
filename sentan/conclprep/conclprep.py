@@ -4,7 +4,7 @@ from sentan.gui.dialogs import ffp, fdp, pmb
 from sentan import dirman
 
 
-__version__ = '0.2'
+__version__ = '0.2.1'
 
 ###Content=====================================================================
 QUEST = '[0-9] [.0-9]+ ?[.0-9]*? .+'
@@ -22,7 +22,7 @@ PATTERNS = {
 }
 
 with open(
-    str(dirman.DIR_STRUCT['Root'].joinpath('result_ppn.dat')),
+    str(dirman.DIR_STRUCT_ROOT['CommonData'].joinpath('result_ppn.dat')),
     mode='r',
     encoding='utf_8') as fle:
     RAW_TEXT = fle.read()

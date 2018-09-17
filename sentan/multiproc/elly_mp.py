@@ -10,7 +10,7 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite, dirman
+from sentan import mysqlite, dirman, shared
 from sentan.textproc import myvect as mv
 from sentan.lowlevel import rwtool
 from sentan.lowlevel.texttools import (
@@ -19,7 +19,8 @@ from sentan.lowlevel.texttools import (
     clean_txt_and_remove_stpw_add_bigrams_splitted as ctrsabs,
     clean_txt_and_remove_stpw_add_intersect_bigrams as ctrsaib,
     create_bigrams as crtbgr,
-   string_to_indexdct as str_to_indct
+   string_to_indexdct as str_to_indct,
+   form_string_numeration
 )
 from sentan.lowlevel.mypars import (
     tokenize as my_tok,
@@ -33,20 +34,20 @@ from sentan.gui.dialogs import (
     ffp, fdp, pmb, giv
 )
 
-__version__ = '0.3.6'
+__version__ = '0.4.1'
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\vocab_nw'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('vocab_nw'))
 )
 TOTAL_PARS = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_lem_pars'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_lem_pars'))
 )
 TOTAL_ACTS = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_acts'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_acts'))
 )
 STPW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
+    str(shared.GLOBS['root_struct']['Common'].joinpath('custom_stpw'))
 )
 CPUS = cpu_count()
 LOCK = Lock()
@@ -239,11 +240,7 @@ def mp_queue_fill(concl, inner_queue, diapason, lock):
             'Starting', current_process().name,
             'PID: {:>7}, {:>28s}'.format(pid, mp_queue_fill.__name__)
         )
-        DB_load = mysqlite.DataBase(
-            raw_path = str(dirman.DIR_STRUCT['TLI']),
-            base_name='TLI',
-            tb_name=True
-        )
+        DB_load = shared.DB['TLI']
     TA = TOTAL_ACTS
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
@@ -297,10 +294,10 @@ def mp_writer(inner_queue, lock, diapason, indx, save_path):
             end_res[key] = sorted(results[key], key=lambda x:x[2], reverse=True)
         else:
             end_res[key] = sorted(results[key], key=lambda x:x[2])
-    rwtool.save_object(
+    rwtool.save(
         end_res,
         indx + '_TEST_RES',
-        save_path
+        to='ProjRes'
     )
     print('\t\t\tPID: {:>7}. Results are written to file'.format(pid)) 
         
@@ -394,7 +391,7 @@ def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
     else:
         concls = rwtool.load_pickle(path)    
     digits_num = len(str(len(concls)))
-    formatter = rwtool.form_string_numeration(digits_num)
+    formatter = form_string_numeration(digits_num)
     for ind, concl in enumerate(concls):
         with lock:
             print(

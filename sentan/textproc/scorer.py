@@ -3,7 +3,7 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite
+from sentan import shared
 from sentan.lowlevel import rwtool
 from sentan.stringbreakers import (
     DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
@@ -13,17 +13,17 @@ from sentan.lowlevel.texttools import (
     string_to_indexdct as str_to_indct
 )
 
-__version__ = 0.2
+__version__ = '0.3'
 
 ###Content=====================================================================
 VOCAB_NW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\vocab_nw'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('vocab_nw'))
 )
 TOTAL_PARS = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\total_lem_pars'
+    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_lem_pars'))
 )
 STPW = rwtool.load_pickle(
-    r'C:\Users\EA-ShevchenkoIS\TextProcessing\StatData\custom_stpw'
+    str(shared.GLOBS['root_struct']['Common'].joinpath('custom_stpw'))
 )
 
 def extract_pairs_term_freq(word1, word2, info):
@@ -113,11 +113,7 @@ class Scorer():
     def __init__(self):
         #self.total_parts = TOTAL_PARS
         #self.vocab_nw = VOCAB_NW
-        self.DB_load = mysqlite.DataBase(
-            raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-            base_name='TNBI',
-            tb_name=True
-        )
+        self.DB_load = shared.DB['TLI']
         self.total_acts = self.DB_load.total_rows()
         #DB_load.close()
     

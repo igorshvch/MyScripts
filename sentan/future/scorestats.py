@@ -2,7 +2,7 @@ from collections import Counter
 
 #Collectiting stats information from list of scores (scorer.py)
 
-__version__ = 0.1
+__version__ = '0.1'
 
 ###Content=====================================================================
 def trunc(num, dgts=2):

@@ -4,8 +4,8 @@ import re
 from datetime import datetime as dt
 from time import time
 #my modules
+from sentan import shared
 import sentan.lowlevel.mypars as mypars
-from sentan import mysqlite
 from sentan import dirman
 from sentan.stringbreakers import RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
 from sentan.lowlevel import textsep
@@ -13,11 +13,10 @@ from sentan.lowlevel.texttools import (
     create_indexdct_from_tokens_list, indexdct_to_string #, create_bigrams
 )
 from sentan.lowlevel.rwtool import (
-    collect_exist_files, load_text, save_object, load_pickle
+    collect_exist_files, read_text, save, load_pickle
 )
-from sentan.gui.dialogs import ffp, fdp, pmb
 
-__version__ = '0.4.3'
+__version__ = '0.5.1'
 
 ###Content=====================================================================
 DataStore1 = mypars.ParsDataStore()
@@ -35,25 +34,13 @@ def raw_files_to_db(load_dir_name='',
     tokenize = mypars.tokenize
     separator = RAWPAR_B
     #Initiate concls loading:
-    path = dirman.DIR_STRUCT['RawText'].joinpath(load_dir_name)
+    path = shared.GLOBS['root_struct']['RawText'].joinpath(load_dir_name)
     raw_files = (
-        load_text(p) for p
+        read_text(p) for p
         in collect_exist_files(top_dir=path, suffix='.txt')
     )   
     #Initiate DB connection:
-    DB_save = mysqlite.DataBase(
-        dir_name= dirman.DIR_STRUCT['DivActs'],
-        base_name='DivActs_'+dirman.TODAY
-    )
-    DB_save.create_tabel(
-        'DivActs',
-        (
-            ('id', 'INTEGER', 'PRIMARY KEY'),
-            ('COURT', 'TEXT'),
-            ('REQ', 'TEXT'),
-            ('ACT', 'TEXT')
-        )
-    )
+    DB_save = shared.DB['DivActs']
     #Start acts separation
     counter = 0
     for fle in raw_files:
@@ -93,25 +80,26 @@ def raw_files_to_db(load_dir_name='',
     print(inden+'Acts in total: {}'.format(TOTAL_ACTS))
     print(inden+'Total time costs: {}'.format(time()-t0))
     DS.create_lem_map()
-    save_object(
+    save(
         DS.lem_map,
-        dirman.TODAY + '_lem_map',
-        str(dirman.DIR_STRUCT['StatData'])
+        'lem_map',
+        to='ProjStatData'
     )
-    save_object(
+    save(
         TOTAL_ACTS,
-        dirman.TODAY + '_total_acts',
-        str(dirman.DIR_STRUCT['StatData'])
+        'total_acts',
+        to='ProjStatData'
     )
 
-def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
+def make_tok_lem_bigr_indx(inden='', DS = DataStore2):
     #Initialise local vars
     t0 = time()
-    pmb('ВЫберите файл с количеством актов')
-    TA = load_pickle(ffp())
+    TA = load_pickle(
+        str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_acts'))
+    )
     OUTPUT = TA//10 if TA > 10 else TA//2
     lem_dict = load_pickle(
-        str(dirman.DIR_STRUCT['StatData'].joinpath(lem_dict_name))
+        str(shared.GLOBS['proj_struct']['StatData'].joinpath('lem_map'))
     )
     sep_par = RAWPAR_B
     sep_toklem = TOKLEM_B
@@ -122,30 +110,8 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
     create_indexdct = create_indexdct_from_tokens_list
     indexdct_tostr = indexdct_to_string
     #Initiate DB connection:
-    pmb('Выберите файл базы данных!')
-    path_db_load = dirman.pthl.Path(ffp())
-    DB_load = mysqlite.DataBase(
-        dir_name=path_db_load.parents[0],
-        base_name=path_db_load.stem,
-        tb_name=True
-    )
-    DB_save = mysqlite.DataBase(
-        dir_name=dirman.DIR_STRUCT['TLI'],
-        base_name='TLI_'+dirman.TODAY
-    )
-    DB_save.create_tabel(
-        'TLI',
-        (
-            ('id', 'INTEGER', 'PRIMARY KEY'),
-            ('COURT', 'TEXT'),
-            ('REQ', 'TEXT'),
-            ('RAWPARS', 'TEXT'),
-            ('DIV', 'TEXT'),
-            ('LEM', 'TEXT'),
-            ('INDXACT', 'TEXT'),
-            ('INDXPAR', 'TEXT')
-        )
-    )
+    DB_load = shared.DB['DivActs']
+    DB_save = shared.DB['TLI']
     #Start division and lemmatization
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
     for batch in acts_gen:
@@ -195,15 +161,15 @@ def make_tok_lem_bigr_indx(lem_dict_name='', inden='', DS = DataStore2):
             inden+'\t\tBatch was proceed in {:4.5f} seconds'.format(time()-t1)
         )
     print(inden+'Total time costs: {}'.format(time()-t0))
-    save_object(
+    save(
         DS.vocab,
-        dirman.TODAY + '_vocab_nw',
-        str(dirman.DIR_STRUCT['StatData'])
+        'vocab_nw',
+        to='ProjStatData'
     )
-    save_object(
+    save(
         lemmed_pars_counter,
-        dirman.TODAY + '_total_lem_pars',
-        str(dirman.DIR_STRUCT['StatData'])
+        'total_lem_pars',
+        to='ProjStatData'
     )
 
 

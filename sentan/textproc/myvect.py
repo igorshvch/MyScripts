@@ -3,7 +3,7 @@ from time import time
 from scipy.spatial.distance import cosine as sp_cosine
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
-__version__ = 0.1
+__version__ = '0.1'
 
 ###Content=====================================================================
 C_VEC = CountVectorizer(token_pattern='\w+')

@@ -10,12 +10,12 @@ __version__ = '0.2.6'
 GLOB_ENC = 'cp1251'
 
 SAVE_LOAD_OPTIONS ={
-        'RootCommon': shared.GLOBS['root_struct']['Common'],
+        'RootCommon':shared.GLOBS['root_struct']['Common'],
         'RootTemp':shared.GLOBS['root_struct']['TEMP'],
-        'ProjStatData':shared.GLOBS['proj_struct']['TEMP'],
+        'ProjStatData':shared.GLOBS['proj_struct']['StatData'],
         'ProjRes':shared.GLOBS['proj_struct']['Results'],
         'ProjConcls':shared.GLOBS['proj_struct']['Conclusions'],
-        'ProjTemp':shared.GLOBS['proj_struct']['_TEMP']
+        'ProjTemp':shared.GLOBS['proj_struct']['TEMP']
     }
 
 def collect_exist_files(top_dir, suffix=''):
