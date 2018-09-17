@@ -2,21 +2,12 @@ import csv
 import pathlib as pthl
 from time import time
 from sentan import shared
-from sentan.gui.dialogs import ffp, fdp
 
-__version__ = '0.2.6'
+
+__version__ = '0.2.7'
 
 ###Content=====================================================================
 GLOB_ENC = 'cp1251'
-
-SAVE_LOAD_OPTIONS ={
-        'RootCommon':shared.GLOBS['root_struct']['Common'],
-        'RootTemp':shared.GLOBS['root_struct']['TEMP'],
-        'ProjStatData':shared.GLOBS['proj_struct']['StatData'],
-        'ProjRes':shared.GLOBS['proj_struct']['Results'],
-        'ProjConcls':shared.GLOBS['proj_struct']['Conclusions'],
-        'ProjTemp':shared.GLOBS['proj_struct']['TEMP']
-    }
 
 def collect_exist_files(top_dir, suffix=''):
     holder = []
@@ -103,35 +94,7 @@ def load_pickle(path):
     import pickle
     with open(path, 'rb') as fle:
         data = pickle.load(fle)
-    return data
-
-def save(py_obj, name, to=None):
-    path = SAVE_LOAD_OPTIONS[to]
-    save_pickle(py_obj, str(path.joinpath(name)))
-
-def load(file=None, where=None):
-    if not file:
-        path = ffp()
-        if path[-4:] == '.txt':
-            return read_text(path)
-        else:
-            return load_pickle(path)
-    else:
-        if file[:3] == 'C:/' or file[:3] == 'C:\\':
-            if file[-4:] == '.txt':
-                return read_text(file)
-            else:
-                return load_pickle(file)
-        else:
-            if not where:
-                raise TypeError("'where' argument needs to be passed!")
-            elif file[-4:] == '.txt':
-                path = SAVE_LOAD_OPTIONS[where]
-                return read_text(str(path.joinpath(file)))
-            else:
-                path = SAVE_LOAD_OPTIONS[where]
-                return load_pickle(str(path.joinpath(file)))
-            
+    return data            
 
 
 ###Testing=====================================================================

@@ -3,8 +3,9 @@ import time
 from . import shared
 from . import mysqlite
 from .lowlevel import rwtool
+from sentan.gui.dialogs import ffp, fdp
 
-__version__ = '0.3'
+__version__ = '0.4.1'
 
 ###Content=====================================================================
 DIR_STRUCT_ROOT = {
@@ -16,6 +17,44 @@ DIR_STRUCT_ROOT = {
 }
 
 TODAY = time.strftime(r'%Y-%m-%d')
+
+def init_save_paths():
+    global SAVE_LOAD_OPTIONS
+    SAVE_LOAD_OPTIONS = {
+        'RootCommon':shared.GLOBS['root_struct']['Common'],
+        'RootTemp':shared.GLOBS['root_struct']['TEMP'],
+        'ProjStatData':shared.GLOBS['proj_struct']['StatData'],
+        'ProjRes':shared.GLOBS['proj_struct']['Results'],
+        'ProjConcls':shared.GLOBS['proj_struct']['Conclusions'],
+        'ProjTemp':shared.GLOBS['proj_struct']['TEMP']
+    }
+
+def save(py_obj, name, to=None):
+    path = SAVE_LOAD_OPTIONS[to]
+    rwtool.save_pickle(py_obj, str(path.joinpath(name)))
+
+def load(file=None, where=None):
+    if not file:
+        path = ffp()
+        if path[-4:] == '.txt':
+            return rwtool.read_text(path)
+        else:
+            return rwtool.load_pickle(path)
+    else:
+        if file[:3] == 'C:/' or file[:3] == 'C:\\':
+            if file[-4:] == '.txt':
+                return rwtool.read_text(file)
+            else:
+                return rwtool.load_pickle(file)
+        else:
+            if not where:
+                raise TypeError("'where' argument needs to be passed!")
+            elif file[-4:] == '.txt':
+                path = SAVE_LOAD_OPTIONS[where]
+                return rwtool.read_text(str(path.joinpath(file)))
+            else:
+                path = SAVE_LOAD_OPTIONS[where]
+                return rwtool.load_pickle(str(path.joinpath(file)))
 
 def create_and_register_root_struct():
     if not pthl.Path().home().joinpath('TextProcessing').exists():
@@ -30,7 +69,7 @@ def create_and_register_root_struct():
 
 def create_project_struct(project_name, dir_struct=DIR_STRUCT_ROOT):
     inner_dirs = ['ActsBase', 'StatData', 'Conclusions', 'Results', '_TEMP']
-    project_path = dir_struct['Projects'].joinpath(TODAY+'_'+project_name)
+    project_path = dir_struct['Projects'].joinpath(project_name)
     shared.GLOBS['proj_path'] = project_path
     paths_to_inner_dirs = [project_path.joinpath(dr) for dr in inner_dirs]
     for p in paths_to_inner_dirs:
@@ -78,18 +117,16 @@ def register_old_projects():
     old_pjs = [p for p in DIR_STRUCT_ROOT['Projects'].iterdir() if p.is_dir()]
     shared.GLOBS['old'] = {p.name:p for p in old_pjs}
         
-def register_project(new_pj=True):
+def register_project():
     shared.GLOBS['proj_name'] = None
     shared.GLOBS['proj_path'] = None
     shared.GLOBS['proj_struct'] = {}
-    if new_pj:
-        proj_name = input('type project name======>')
-        if not proj_name:
-            raise TypeError('No name was typed!')
-        shared.GLOBS['proj_name'] = proj_name
-        create_project_struct(project_name=proj_name)
-    else:
-        print('None new project was created and registered!')
+    proj_name = input('type project name======>')
+    if not proj_name:
+        raise TypeError('No project name was typed!')
+    shared.GLOBS['proj_name'] = TODAY+'_'+proj_name
+    create_project_struct(project_name=proj_name)
+    init_save_paths()
     register_old_projects()
 
 def close_current_project():
@@ -101,7 +138,7 @@ def close_current_project():
     if pn:
         print('Current project {} was succeffuly closed!'.format(pn))
 
-def swith_to_another_project(another_project_name):
+def swith_to_project(another_project_name):
     olds = shared.GLOBS['old']
     close_current_project()
     if another_project_name in olds:
@@ -118,12 +155,13 @@ def swith_to_another_project(another_project_name):
     print('Current project is: {}'.format(another_project_name))
 
 def store_global_data_for_subproc_access():
-    rwtool.save(shared.GLOBS, 'GLOBS', to='RootTemp')
+    keys = ['proj_name', 'proj_path', 'proj_struct']
+    dct = {key:shared.GLOBS[key] for key in keys}
+    save(dct, 'GLOBS', to='RootTemp')
 
-
-create_and_register_root_struct()
-register_project(new_pj=False)
-register_old_projects()
+def init_project():
+    create_and_register_root_struct()
+    register_old_projects()
 
 
 ###Testing=====================================================================

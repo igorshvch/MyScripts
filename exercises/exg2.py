@@ -1,4 +1,4 @@
-from exercises.exg1 import GLOB
+from exercises import exg1
 
-GLOB.append(123)
+exg1.GLOB.append(123)
 
