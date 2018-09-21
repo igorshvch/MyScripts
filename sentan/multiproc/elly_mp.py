@@ -356,10 +356,16 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
     RESULTS_CONSUMER.join()
     #Multiprocessing ends. Info==================
     end_time2 = time()-t0
+    end_time2_min = end_time2/60
     print_cust(
         'Operation ended. '
-        +'TIME_TOTAL: min: {:>9.5f}, '.format(end_time2/60)
+        +'TIME_TOTAL: min: {:>9.5f}, '.format(end_time2_min)
         +'sec: {:>9.5f}'.format(end_time2)
+    )
+    rwtool.save_object(
+        (end_time2, end_time2_min,),
+        'TIME_' + indx + '_TEST_RES',
+        save_path
     )
 
 def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
@@ -408,14 +414,20 @@ def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
             concl, formatter.format(ind), save_path, cpus, local_lock=lock
         )
     end_time = time()-t0
+    end_time_min = end_time/60
     with lock:
         print(
             '\n\nITERATION ENDS! TOTAL TIME: '
-            +'min: {:>9.5f}, sec: {:>9.5f}'.format(end_time/60, end_time)
+            +'min: {:>9.5f}, sec: {:>9.5f}'.format(end_time_min, end_time)
         )
         print(92*'=')
         print(92*'=')
         print(92*'=')
+    rwtool.save_object(
+        (end_time, end_time_min,),
+        'TIME_TOTAL',
+        save_path
+    )
     
 
 ###Testing=====================================================================

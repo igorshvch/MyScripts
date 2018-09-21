@@ -3,8 +3,7 @@ from collections import deque
 from sentan.gui.dialogs import ffp, fdp, pmb
 from sentan import dirman
 
-
-__version__ = '0.2'
+__version__ = '0.3.1'
 
 ###Content=====================================================================
 QUEST = '[0-9] [.0-9]+ ?[.0-9]*? .+'
@@ -21,10 +20,11 @@ PATTERNS = {
     'N' : NONJUDJ
 }
 
-with open(
-    str(dirman.DIR_STRUCT['Root'].joinpath('result_ppn.dat')),
-    mode='r',
-    encoding='utf_8') as fle:
+pmb('Выберите файл с обработанным текстом ППН')
+PATH = ffp()
+print(PATH)
+
+with open(PATH, mode='r', encoding='utf_8') as fle:
     RAW_TEXT = fle.read()
 
 def clean_input_concls():
@@ -178,7 +178,28 @@ def find_input_concl_in_stored_ones(lst_of_concls, store):
                 holder_ind.append(ind)
     return holder, dct, holder_ind
 
-def main():
+def exclude_input_concl_in_stored_ones(lst_of_concls, store):
+    holder = set()
+    lst_of_concls_test = [
+        ''.join(word for word in concl.split() if word)
+        for concl in lst_of_concls
+    ]
+    store_test = [
+        ''.join(word for word in item.split() if word)
+        for item in store
+    ]
+    for test_concl in lst_of_concls_test:
+        for ind, test_item in enumerate(store_test):
+            if test_concl in test_item:
+                holder.add(ind)
+    last = set(list(range(1142)))
+    rigth_ind = last - holder
+    res = []
+    for ind in rigth_ind:
+        res.append(store[ind])
+    return res
+
+def main_include():
     from writer import writer
     list_of_input_concls = clean_input_concls()
     list_of_processed_concls = (
@@ -191,6 +212,17 @@ def main():
     writer(dct.items(), 'found_concls', mode='w')
     return result
 
+def main_exclude():
+    list_of_input_concls = clean_input_concls()
+    list_of_processed_concls = (
+        dct_to_list_of_concls(clean_output_concls())
+    )
+    print(type(list_of_processed_concls))
+    result = exclude_input_concl_in_stored_ones(
+        list_of_input_concls,
+        list_of_processed_concls
+    )
+    return result
 
 
 ###Testing=====================================================================
