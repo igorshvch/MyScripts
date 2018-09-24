@@ -3,7 +3,7 @@ from collections import deque
 from sentan.gui.dialogs import ffp, fdp, pmb
 from openpyxl import load_workbook
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 ###Content=====================================================================
 
@@ -22,7 +22,7 @@ class RowsCollectror():
         self.rows = range(*rows)
         self.cols = cols
         self.break_vals = break_vals
-        self.wb=load_workbook(filename=r'C:\Users\EA-ShevchenkoIS\Desktop\Работа\ПСП-ХИТЫ-на актуализацию 05.02.2017.xlsx')
+        self.wb=load_workbook(filename=r'C:\Users\EA-ShevchenkoIS\TextProcessing\_TEMP\Аннотация ПСП Поставка 59 выводов.xlsx')
         self.wsh = 'Лист1'
     
     def open_excel(self):
