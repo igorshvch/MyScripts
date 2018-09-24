@@ -18,12 +18,12 @@ VALS = {'ЦИТАТА АКТА', 'ДОБОР НЕ НУЖЕН', 'ЦИТАТА Н�
 
 
 class RowsCollectror():
-    def __init__(self, rows, cols=COLS, klass=KLASS, break_vals=VALS):
+    def __init__(self, rows, cols=COLS, break_vals=VALS):
         self.rows = range(*rows)
-        self.cols = cols[0],
-        self.klass = klass,
+        self.cols = cols
         self.break_vals = break_vals
-        self.wb=None
+        self.wb=load_workbook(filename=r'C:\Users\EA-ShevchenkoIS\Desktop\Работа\ПСП-ХИТЫ-на актуализацию 05.02.2017.xlsx')
+        self.wsh = 'Лист1'
     
     def open_excel(self):
         pmb('Выберите книгу Excel')
@@ -41,15 +41,18 @@ class RowsCollectror():
         keys = ['par', 'concl', 'klass', 'pos1', 'pos2', 'pos3', 'pos4']
         for i in rows:
             cells = [col+str(i) for col in cols]
-            vals = {key:wsh[cell].value for key,cell in zip(keys, cells)}
+            #print(cells)
+            vals = {key:(wsh[cell].value) for key,cell in zip(keys, cells)}
+            #print(vals)
             if vals['klass'] == 'К удалению':
-                continue
+                par_concl = vals['par']+'#'+vals['concl']+'#'
+                holder.append(par_concl+'К удалению')
             else:
                 par_concl = vals['par']+'#'+vals['concl']+'#'
-                holder.append(par_concl+vals['pos1'])
-                holder.append(par_concl+vals['pos2'])
-                holder.append(par_concl+vals['pos3'])
-                holder.append(par_concl+vals['pos4'])
+                holder.append(par_concl+ (vals['pos1'] if vals['pos1'] else ''))
+                holder.append(par_concl+ (vals['pos2'] if vals['pos2'] else ''))
+                holder.append(par_concl+ (vals['pos3'] if vals['pos3'] else ''))
+                holder.append(par_concl+ (vals['pos4'] if vals['pos4'] else ''))
         return holder
 
 
