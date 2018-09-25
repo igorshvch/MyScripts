@@ -13,6 +13,9 @@ DESICION_PURE = '(?<=[0-9]\.[0-9]\. Вывод из судебной практ�
 DESICION_ALT = (
     '(?<=Вывод из судебной практики: По вопросу о).*(?=у судов нет единой позиции|существует две позиции судов|существует три позиции судов|существует четыре позиции судов|существует пять позиций судов)'
 )
+DESICION_CLEANED = (
+    '(?<=По вопросу о).*(?=у судов нет единой позиции|существует две позиции судов|существует три позиции судов|существует четыре позиции судов|существует пять позиций судов)'
+)
 POSITION_DIRTY = 'Позиция [1-9]\. .+'
 POSITION_PURE = '(?<=Позиция [1-9]\.).*'
 
@@ -22,6 +25,7 @@ PATTERNS = {
     'di' : DESICION_INDEX, 
     'dp': DESICION_PURE,
     'da': DESICION_ALT,
+    'dc': DESICION_CLEANED,
     'pd': POSITION_DIRTY,
     'p': POSITION_PURE
 }
@@ -70,42 +74,6 @@ def process_concls():
             )
     return holder
 
-def clean_processed_concls():
-    holder = []
-    pmb('Chose file with conclusions!')
-    path_to_file = ffp()
-    with open(path_to_file, mode='r') as fle:
-        text = fle.read()
-    spl = [line.split('#') for line in text.split('\n') if line]
-    for _, concl in enumerate(spl):
-        if len(concl) == 2:
-            item1, item2 = concl
-            item1 = item1[3:]
-            try:
-                item2 = re.search(PATTERNS['dp'], item2).group().strip(' ')
-            except:
-                print(item2)
-                break
-            holder.append(' '.join([item1, item2]))
-        elif len(concl) == 3:
-            item1, item2, item3 = concl
-            item1 = item1[3:]
-            try:
-                item2 = re.search(PATTERNS['da'], item2).group().strip(' ')
-            except:
-                print('item 2', _, 'part', item2)
-                break
-            try:
-                item3 = re.search(PATTERNS['p'], item3).group().strip(' ')
-            except:
-                print('item 3', _, 'part', item3)
-                break
-            holder.append(' '.join([item1, item2, item3]))
-        else:
-            print(_, len(concl), concl)
-            raise TypeError('Something has gone wrong!')
-    return holder
-
 def func(cleaned_dec, stored_dec):
     from writer import writer
     holder_errors = []
@@ -151,8 +119,29 @@ def func(cleaned_dec, stored_dec):
                 pos_in_st = None
             if val != key:
                 break
-    holder_res = [re.subn('#{1,4}', ' ', line)[0] for line in holder_res]
+    holder_res = [re.subn('#{1,4}', '#', line)[0].rstrip('#') for line in holder_res]
     return holder_res, holder_errors
+
+def cleaner(string):
+    holder = []
+    spl = [line.lstrip('0123456789. ') for line in string.split('#')]
+    for line in spl:
+        if re.search(PATTERNS['dc'], line):
+            holder.append(re.search(PATTERNS['dc'], line).group())
+        elif re.search(PATTERNS['p'], line):
+            holder.append(re.search(PATTERNS['p'], line).group())
+        else:
+            holder.append(line)
+    return ' '.join(holder)
+        
+
+def clean_string_from_pattern(lst):
+    holder = []
+    for item in lst:
+        res = cleaner(item)
+        holder.append(res)
+    return holder
+
 
 
 ###Testing=====================================================================

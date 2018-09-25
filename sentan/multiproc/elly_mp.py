@@ -368,7 +368,7 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
         save_path
     )
 
-def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
+def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5, num_start=0):
     message1 = (
         'Chose concls FILE and DIRECTORY to save results'
     )
@@ -401,7 +401,7 @@ def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
         concls = rwtool.load_pickle(path)    
     digits_num = len(str(len(concls)))
     formatter = rwtool.form_string_numeration(digits_num)
-    for ind, concl in enumerate(concls):
+    for ind, concl in enumerate(concls, start=int(num_start)):
         with lock:
             print(
                 '\n\n'
@@ -443,7 +443,7 @@ if __name__ == '__main__':
             print('Testing mode!')
             print('Not implemented!')
         elif sys.argv[1] == '-r':
-            nextiter(CP_UNITS=sys.argv[2])
+            nextiter(CP_UNITS=sys.argv[2], num_start=sys.argv[3])
         else:
             print('Not implemented!')
     except IndexError:
