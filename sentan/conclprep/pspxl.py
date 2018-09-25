@@ -14,7 +14,7 @@ KLASS = {
     'Устоялась нет динамики' : True,
     'К удалению' : False
 }
-VALS = {'ЦИТАТА АКТА', 'ДОБОР НЕ НУЖЕН', 'ЦИТАТА НОРМЫ'}
+VALS = {'ЦИТАТА АКТА', 'ДОБОР НЕ НУЖЕН', 'ЦИТАТА НОРМЫ', None, '', False}
 
 
 class RowsCollectror():
@@ -49,10 +49,10 @@ class RowsCollectror():
                 holder.append(par_concl+'К удалению')
             else:
                 par_concl = vals['par']+'#'+vals['concl']+'#'
-                holder.append(par_concl+ (vals['pos1'] if vals['pos1'] else ''))
-                holder.append(par_concl+ (vals['pos2'] if vals['pos2'] else ''))
-                holder.append(par_concl+ (vals['pos3'] if vals['pos3'] else ''))
-                holder.append(par_concl+ (vals['pos4'] if vals['pos4'] else ''))
+                holder.append(par_concl+ (vals['pos1'] if vals['pos1'] not in self.break_vals else ''))
+                holder.append(par_concl+ (vals['pos2'] if vals['pos2'] not in self.break_vals else ''))
+                holder.append(par_concl+ (vals['pos3'] if vals['pos3'] not in self.break_vals else ''))
+                holder.append(par_concl+ (vals['pos4'] if vals['pos4'] not in self.break_vals else ''))
         return holder
 
 
