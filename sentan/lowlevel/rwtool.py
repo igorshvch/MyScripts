@@ -1,7 +1,6 @@
 import csv
 import pathlib as pthl
 from time import time
-from sentan import shared
 
 
 __version__ = '0.2.7'
@@ -95,6 +94,10 @@ def load_pickle(path):
     with open(path, 'rb') as fle:
         data = pickle.load(fle)
     return data            
+
+def save(py_obj, name, save_paths, to=None):
+    path = save_paths[to]
+    save_pickle(py_obj, str(path.joinpath(name)))
 
 
 ###Testing=====================================================================

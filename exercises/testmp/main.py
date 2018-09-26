@@ -33,5 +33,7 @@ if __name__ == '__main__':
         print(GLOBS)
     main(GLOBS)
     print('END!')
+    val = input('Type here: ')
+    print(val)
 
 
