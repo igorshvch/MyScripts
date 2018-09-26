@@ -33,3 +33,9 @@ def init_db_command():
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+<<<<<<< HEAD
+=======
+
+
+#TESTS=========================================================================
+>>>>>>> 852062aa066545ed7846e67037d2e119eda6f8c2

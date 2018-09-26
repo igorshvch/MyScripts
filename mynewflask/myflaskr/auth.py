@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import functools
 
 from flask import (
@@ -82,3 +83,17 @@ def logout():
     return redirect(url_for('index'))
 
 
+=======
+import functools as ft
+from flask import (
+    Blueprint, flash, g,
+    redirect, render_template, request,
+    session, url_for
+)
+from werkzeug.security import (
+    check_password_hash, generate_password_hash
+)
+from myflaskr.db import get_db
+
+bp = Blueprint('auth', __name__, url_prefix='/auth')
+>>>>>>> 852062aa066545ed7846e67037d2e119eda6f8c2

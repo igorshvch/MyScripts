@@ -23,8 +23,14 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
     
+<<<<<<< HEAD
     from myflaskr import db
+=======
+    from . import db, auth
+>>>>>>> 852062aa066545ed7846e67037d2e119eda6f8c2
     db.init_app(app)
+    app.register_blueprint(auth.bp)
+
 
     from myflaskr import  auth, blog
     app.register_blueprint(auth.bp)
