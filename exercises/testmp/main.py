@@ -32,5 +32,6 @@ if __name__ == '__main__':
         print('GLOBS', type(GLOBS))
         print(GLOBS)
     main(GLOBS)
+    print('END!')
 
 
