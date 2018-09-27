@@ -4,16 +4,16 @@ import re
 from datetime import datetime as dt
 from time import time
 #my modules
-from sentan import shared
-import sentan.lowlevel.mypars as mypars
-from sentan import dirman
-from sentan.stringbreakers import RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
+from sentan.lowlevel import mypars
 from sentan.lowlevel import textsep
-from sentan.lowlevel.texttools import (
+from sentan.lowlevel import texttools import (
     create_indexdct_from_tokens_list, indexdct_to_string #, create_bigrams
 )
 from sentan.lowlevel.rwtool import (
-    collect_exist_files, read_text, save, load_pickle
+    collect_exist_files, read_text, save_obj, load_pickle
+)
+from sentan.stringbreakers import (
+    RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
 )
 
 __version__ = '0.5.1'

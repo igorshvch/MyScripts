@@ -3,7 +3,7 @@ import pathlib as pthl
 from time import time
 
 
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 
 ###Content=====================================================================
 GLOB_ENC = 'cp1251'
@@ -60,10 +60,10 @@ def write_text(text, path):
     with open(path, mode='w', encoding=GLOB_ENC) as fle:
         fle.write(text)
 
-def write_iter_to_csv(full_path,
-                      iter_txt_holder,
-                      header=None,
-                      zero_string=None):
+def write_iterable_to_csv(full_path,
+                          iter_txt_holder,
+                          header=None,
+                          zero_string=None):
     with open(full_path, mode='w', newline='', encoding=GLOB_ENC) as fle:
         writer = csv.writer(
             fle,
@@ -95,9 +95,9 @@ def load_pickle(path):
         data = pickle.load(fle)
     return data            
 
-def save(py_obj, name, save_paths, to=None):
-    path = save_paths[to]
-    save_pickle(py_obj, str(path.joinpath(name)))
+def save_obj(py_obj, name, save_path):
+    path = save_path.joinpath(name)
+    save_pickle(py_obj, str(path)
 
 
 ###Testing=====================================================================
