@@ -3,7 +3,7 @@ from sentan.gui.dialogs import ffp, fdp, pmb
 from sentan.lowlevel import rwtool
 from collections import deque
 
-__version__ = '0.1'
+__version__ = '0.1.2'
 
 ###Content=====================================================================
 ARTICLE = 'Статья [0-9]{3}\. .+'
@@ -30,7 +30,7 @@ PATTERNS = {
     'p': POSITION_PURE
 }
 
-def process_concls():
+def process_concls_in_index():
     pmb('Chose file with conclusions!')
     path_to_file = ffp()
     with open(path_to_file, mode='r') as fle:
