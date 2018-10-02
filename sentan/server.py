@@ -10,7 +10,7 @@ __version__='0.0.1'
 
 #CONTENT=======================================================================
 
-DIR_STRUCT_ROOT = {
+ROOT_STRUCT = {
     'Root': (pthl.Path().home().joinpath('TextProcessing')),
     'RawText': (pthl.Path().home().joinpath('TextProcessing','RawText')),
     'Projects': (pthl.Path().home().joinpath('TextProcessing','Projects')),
@@ -33,7 +33,7 @@ COMMANDS = {
 def init_register():
     global GLOBS
     GLOBS = Manager().dict()
-    GLOBS['root_struct'] = DIR_STRUCT_ROOT
+    GLOBS['root_struct'] = ROOT_STRUCT
     #GLOBS = {
     #    'root_struct': {
     #        'Root':None,
@@ -54,16 +54,16 @@ def init_register():
     #    'old':None,
     #}
 
-def init_save_paths(register):
-    global SAVE_OPTIONS
-    SAVE_OPTIONS = {
-        'RootCommon':register['root_struct']['Common'],
-        'RootTemp':register['root_struct']['TEMP'],
-        'ProjStatData':register['proj_struct']['StatData'],
-        'ProjRes':register['proj_struct']['Results'],
-        'ProjConcls':register['proj_struct']['Conclusions'],
-        'ProjTemp':register['proj_struct']['TEMP']
-    }
+#def init_save_paths(register):
+#    global SAVE_OPTIONS
+#    SAVE_OPTIONS = {
+#        'RootCommon':register['root_struct']['Common'],
+#        'RootTemp':register['root_struct']['TEMP'],
+#        'ProjStatData':register['proj_struct']['StatData'],
+#        'ProjRes':register['proj_struct']['Results'],
+#        'ProjConcls':register['proj_struct']['Conclusions'],
+#        'ProjTemp':register['proj_struct']['TEMP']
+#    }
 
 def print_commands(inden=''):
     print('Commands:')
@@ -74,9 +74,9 @@ def print_commands(inden=''):
 def interface():
     print('Init GLOBS path register')
     init_register()
-    if not DIR_STRUCT_ROOT['Root'].exists():
-        dirman.create_and_register_root_struct(DIR_STRUCT_ROOT)
-    reg = dirman.Registrator(GLOBS, DIR_STRUCT_ROOT)
+    if not GLOBS['root_struct']['Root'].exists():
+        dirman.create_and_register_root_struct(GLOBS['root_struct'])
+    reg = dirman.Registrator(GLOBS, GLOBS['root_struct'])
     print_commands()
     while True:
         breaker = input('==>Type command here: ')
