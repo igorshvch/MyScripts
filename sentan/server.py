@@ -9,6 +9,7 @@ from sentan import dirman
 __version__='0.0.1'
 
 #CONTENT=======================================================================
+LOCK = Lock()
 
 ROOT_STRUCT = {
     'Root': (pthl.Path().home().joinpath('TextProcessing')),
@@ -22,7 +23,7 @@ COMMANDS = {
     '1': 'create new project',
     '2': 'switch to another project',
     '3': 'close project',
-    '4': '',
+    '4': 'make databases',
     '5': '',
     '6': '',
     '7': 'list all exist projects',
@@ -65,6 +66,12 @@ def init_register():
 #        'ProjTemp':register['proj_struct']['TEMP']
 #    }
 
+def make_dtl(load_dir_name):
+    dtl = importlib.import_module('sentan.textproc.divtoklem')
+    pr = Process(target = dtl.main, args=(GLOBS, load_dir_name))
+    pr.start()
+    pr.join()
+
 def print_commands(inden=''):
     print('Commands:')
     for key in sorted(COMMANDS.keys()):
@@ -93,6 +100,11 @@ def interface():
         elif breaker == '3':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
             reg.close_current_project()
+        elif breaker == '4':
+            print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
+            load_dir_name = input('Type raw acts folder: ')
+            make_dtl(load_dir_name)
+            print_commands('\t')
         elif breaker == '7':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
             print('All exist projects:')

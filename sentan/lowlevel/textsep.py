@@ -1,9 +1,9 @@
 import re
 from time import time
 
-__version__ = '0.1'
+__version__ = '0.2.1'
 
-###Constants===================================================================
+###Content=====================================================================
 #Patterns
 PATTERN_ACT_CLEAN1 = '-{66}\nКонсультантПлюс.+?-{66}\n'
 PATTERN_ACT_CLEAN2 = 'КонсультантПлюс.+?\n.+?\n'
@@ -17,10 +17,8 @@ PATTERN_PASS1 = (
 PATTERN_PASS2 = (
     'Утвержден\nпрезидиумом Арбитражного суда\nСеверо-Кавказского округа'
 )
-#Constants:
-SEP_TYPE='sep1'
 
-###Content=====================================================================
+#Funcs
 def court_decisions_cleaner(text, inden=''):
     t0 = time()
     cleaned_text1 = re.subn(PATTERN_ACT_CLEAN1, '', text, flags=re.DOTALL)[0]
@@ -31,7 +29,7 @@ def court_decisions_cleaner(text, inden=''):
     print('{}Acts were cleaned in {} seconds'.format(inden, time()-t0))
     return cleaned_text3[1:-68]
 
-def court_decisions_separator(text, sep_type=SEP_TYPE, inden=''):
+def court_decisions_separator(text, sep_type='sep1', inden=''):
     t0 = time()
     if sep_type=='sep1':
         separated_acts = re.split(PATTERN_ACT_SEP1, text)

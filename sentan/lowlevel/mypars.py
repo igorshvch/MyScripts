@@ -1,10 +1,10 @@
 import pymorphy2
 import re
-from collections import Counter
 from time import time
 
-__version__ = '0.1'
+__version__ = '0.2.1'
 
+###Content=====================================================================
 ###pymoprhy2 analyzer instance=================================================
 MORPH = pymorphy2.MorphAnalyzer()
 parser_options = {
@@ -18,28 +18,7 @@ parser_options = {
 }
 PAR_TYPE = 'parser1'
 PARSER = parser_options[PAR_TYPE]
-
-###Content=====================================================================
-class ParsDataStore():
-    '''
-    Storage for different text information units with arbitrary structure
-    '''
-    def __init__(self):
-        self.vocab = Counter()
-        self.lem_map = None
-    
-    def words_count(self, act):
-        voc = self.vocab
-        for par in act:
-            voc.update(par)
-
-    def create_lem_map(self):
-        t0 = time()
-        lemz = PARSER
-        voc = self.vocab
-        dct = {key:lemz(key) for key in voc}
-        self.lem_map = dct
-        print('Lem_map was created in {:4.5f} seconds'.format(time()-t0))
+#==============================================================================
 
 def tokenize(text, threshold=0):
     text = text.lower().strip()
