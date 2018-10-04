@@ -1,7 +1,7 @@
 # coding=cp1251
 
 from multiprocessing import (
-    Process, Queue, Lock, current_process, cpu_count
+    Process, Queue, current_process, cpu_count
 )
 import queue
 import os
@@ -10,7 +10,8 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import mysqlite, dirman, shared
+import pathlib as pthl
+from sentan import mysqlite
 from sentan.textproc import myvect as mv
 from sentan.lowlevel import rwtool
 from sentan.lowlevel.texttools import (
@@ -19,8 +20,8 @@ from sentan.lowlevel.texttools import (
     clean_txt_and_remove_stpw_add_bigrams_splitted as ctrsabs,
     clean_txt_and_remove_stpw_add_intersect_bigrams as ctrsaib,
     create_bigrams as crtbgr,
-   string_to_indexdct as str_to_indct,
-   form_string_numeration
+    string_to_indexdct as str_to_indct,
+    form_string_numeration
 )
 from sentan.lowlevel.mypars import (
     tokenize as my_tok,
@@ -34,23 +35,27 @@ from sentan.gui.dialogs import (
     ffp, fdp, pmb, giv
 )
 
-__version__ = '0.4.1'
+__version__ = '0.3.6'
 
 ###Content=====================================================================
-VOCAB_NW = rwtool.load_pickle(
-    str(shared.GLOBS['proj_struct']['StatData'].joinpath('vocab_nw'))
-)
-TOTAL_PARS = rwtool.load_pickle(
-    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_lem_pars'))
-)
-TOTAL_ACTS = rwtool.load_pickle(
-    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_acts'))
-)
-STPW = rwtool.load_pickle(
-    str(shared.GLOBS['root_struct']['Common'].joinpath('custom_stpw'))
-)
 CPUS = cpu_count()
-LOCK = Lock()
+def init_paths(paths):
+    global VOCAB_NW
+    VOCAB_NW = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('vocab_nw'))
+    )
+    global TOTAL_PARS
+    TOTAL_PARS = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('total_lem_pars'))
+    )
+    global TOTAL_ACTS
+    TOTAL_ACTS = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('total_acts'))
+    )
+    global STPW
+    STPW = rwtool.load_pickle(
+        str(paths['root_struct']['Common'].joinpath('custom_stpw'))
+    )
 
 def processor(item):
     #Initialise local vars=======================
@@ -233,14 +238,17 @@ def mp_processor(store1, store2, lock):
             )
     store2.put(None)
 
-def mp_queue_fill(concl, inner_queue, diapason, lock):
+def mp_queue_fill(concl, inner_queue, diapason, lock, paths):
     pid = os.getpid()
     with lock:
         print(
             'Starting', current_process().name,
             'PID: {:>7}, {:>28s}'.format(pid, mp_queue_fill.__name__)
         )
-        DB_load = shared.DB['TLI']
+        DB_load = mysqlite.DataBase(
+            path = paths['proj_struct']['ActsBase'],
+            base_name='TLI'
+        )
     TA = TOTAL_ACTS
     OUTPUT = TA//10 if TA > 10 else TA//2
     acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
@@ -294,10 +302,10 @@ def mp_writer(inner_queue, lock, diapason, indx, save_path):
             end_res[key] = sorted(results[key], key=lambda x:x[2], reverse=True)
         else:
             end_res[key] = sorted(results[key], key=lambda x:x[2])
-    rwtool.save(
+    rwtool.save_obj(
         end_res,
         indx + '_TEST_RES',
-        to='ProjRes'
+        pthl.Path(save_path)
     )
     print('\t\t\tPID: {:>7}. Results are written to file'.format(pid)) 
         
@@ -306,7 +314,7 @@ def print_cust(message):
     print(message)
     print(92*'=')
 
-def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
+def iteration(raw_concl, indx, save_path, cpus, local_lock, paths):
     #Initialise local vars=======================
     pid = os.getpid()
     concl_lemmed = my_lem(my_tok(raw_concl))
@@ -336,7 +344,7 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
     #Multiprocessing starts======================
     QUEUE_FILLER = Process(
         target=mp_queue_fill,
-        args=(concl_lemmed, store1, PROC_UNITS, lock)
+        args=(concl_lemmed, store1, PROC_UNITS, lock, paths)
     )
     WORKERS_HOLDER = [
         Process(target=mp_processor, args=(store1, store2, lock))
@@ -353,23 +361,27 @@ def main(raw_concl, indx, save_path, cpus, local_lock=LOCK):
     RESULTS_CONSUMER.join()
     #Multiprocessing ends. Info==================
     end_time2 = time()-t0
+    end_time2_min = end_time2/60
     print_cust(
         'Operation ended. '
-        +'TIME_TOTAL: min: {:>9.5f}, '.format(end_time2/60)
+        +'TIME_TOTAL: min: {:>9.5f}, '.format(end_time2_min)
         +'sec: {:>9.5f}'.format(end_time2)
     )
+    rwtool.save_obj(
+        (end_time2, end_time2_min,),
+        'TIME_' + indx + '_TEST_RES',
+        pthl.Path(save_path)
+    )
 
-def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
+def main(paths, local_lock, CP_UNITS=5, num_start=0):
+    init_paths(paths)
     message1 = (
         'Chose concls FILE and DIRECTORY to save results'
     )
     pmb(message1)
-    if not path_to_file:
-        path = ffp()
-    else:
-        path = path_to_file
-    lock = local_lock
+    path = ffp()
     save_path = fdp()
+    lock = local_lock
     #message2 = (
     #    'Number of CPUS: {:>2}.'.format(CPUS)
     #    +'\nSelect number of worker processes:'
@@ -392,7 +404,7 @@ def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
         concls = rwtool.load_pickle(path)    
     digits_num = len(str(len(concls)))
     formatter = form_string_numeration(digits_num)
-    for ind, concl in enumerate(concls):
+    for ind, concl in enumerate(concls, start=int(num_start)):
         with lock:
             print(
                 '\n\n'
@@ -401,18 +413,24 @@ def nextiter(path_to_file=None, local_lock=LOCK, CP_UNITS=5):
                 +36*'!'
                 +'\n\n'
             )
-        main(
-            concl, formatter.format(ind), save_path, cpus, local_lock=lock
+        iteration(
+            concl, formatter.format(ind), save_path, cpus, lock, paths
         )
     end_time = time()-t0
+    end_time_min = end_time/60
     with lock:
         print(
             '\n\nITERATION ENDS! TOTAL TIME: '
-            +'min: {:>9.5f}, sec: {:>9.5f}'.format(end_time/60, end_time)
+            +'min: {:>9.5f}, sec: {:>9.5f}'.format(end_time_min, end_time)
         )
         print(92*'=')
         print(92*'=')
         print(92*'=')
+    rwtool.save_obj(
+        (end_time, end_time_min,),
+        'TIME_TOTAL',
+        pthl.Path(save_path)
+    )
     
 
 ###Testing=====================================================================
@@ -427,8 +445,6 @@ if __name__ == '__main__':
         elif sys.argv[1] == '-t':
             print('Testing mode!')
             print('Not implemented!')
-        elif sys.argv[1] == '-r':
-            nextiter(CP_UNITS=sys.argv[2])
         else:
             print('Not implemented!')
     except IndexError:

@@ -3,8 +3,6 @@ from math import (
     log10 as math_log,
     exp as math_exp
 )
-from sentan import shared
-from sentan.lowlevel import rwtool
 from sentan.stringbreakers import (
     DCTKEY_B, DCTITM_B, TOKLEM_B, RAWPAR_B
 )
@@ -16,16 +14,6 @@ from sentan.lowlevel.texttools import (
 __version__ = '0.3'
 
 ###Content=====================================================================
-VOCAB_NW = rwtool.load_pickle(
-    str(shared.GLOBS['proj_struct']['StatData'].joinpath('vocab_nw'))
-)
-TOTAL_PARS = rwtool.load_pickle(
-    str(shared.GLOBS['proj_struct']['StatData'].joinpath('total_lem_pars'))
-)
-STPW = rwtool.load_pickle(
-    str(shared.GLOBS['root_struct']['Common'].joinpath('custom_stpw'))
-)
-
 def extract_pairs_term_freq(word1, word2, info):
     key_pref = 'total'+DCTKEY_B
     counter = 0
@@ -91,7 +79,7 @@ def w_allwords(phrase_words, act, vocab, total_parts):
     log_ps = [math_log(p) for p in p_ontopics]
     return 0.2*sum(log_ps)*0.03**mis_count
 
-def score(phrase_words, act, info, vocab=VOCAB_NW, total_parts=TOTAL_PARS):
+def score(phrase_words, act, info, vocab, total_parts):
     #local_crtbgr = crtbgr
     w_singles = [w_single(w, info, vocab, total_parts) for w in phrase_words]
     #print(w_singles)
@@ -110,17 +98,18 @@ def score(phrase_words, act, info, vocab=VOCAB_NW, total_parts=TOTAL_PARS):
     return abs(sum(w_singles)+sum(w_pairs)+res_w_allwords)
 
 class Scorer():
-    def __init__(self):
+    def __init__(self, path_to_db, stpw):
         #self.total_parts = TOTAL_PARS
         #self.vocab_nw = VOCAB_NW
-        self.DB_load = shared.DB['TLI']
+        self.DB_load = path_to_db
+        self.stpw = stpw
         self.total_acts = self.DB_load.total_rows()
         #DB_load.close()
     
-    def score_acts(self, concl):
+    def score_acts(self, concl, vocab_nw):
         #Initialize local vars:
         t0=time()
-        stpw = STPW
+        stpw = self.stpw
         concl = [word for word in concl if word not in stpw]
         sep_keyval = DCTITM_B
         sep_par = RAWPAR_B
@@ -129,7 +118,7 @@ class Scorer():
         OUTPUT = TA//10 if TA > 10 else TA//2
         acts_gen = self.DB_load.iterate_row_retr(length=TA, output=OUTPUT)
         counter = 1
-        vocab_nw = VOCAB_NW
+        vocab_nw = vocab_nw
         holder = []
         #Initialize local funcs:
         local_scorer = score
@@ -162,20 +151,20 @@ class Scorer():
         print('\tCorpus was scored in {} seconds.'.format(time()-t0))
         return sorted(holder, key=lambda x:x[2], reverse=True)
     
-    def score_pars_and_acts(self, concl):
+    def score_pars_and_acts(self, concl, total_pars, vocab_nw):
         #Initialize local vars:
         t0=time()
-        stpw = STPW
+        stpw = self.stpw
         concl = [word for word in concl if word not in stpw]
         sep_keyval = DCTITM_B
         sep_par = RAWPAR_B
         sep_lems = TOKLEM_B
         TA = self.total_acts
-        TA_pars = TOTAL_PARS
+        TA_pars = total_pars
         OUTPUT = TA//10 if TA > 10 else TA//2
         acts_gen = self.DB_load.iterate_row_retr(length=TA, output=OUTPUT)
         counter = 1
-        vocab_nw = VOCAB_NW
+        vocab_nw = vocab_nw
         holder = []
         #Initialize local funcs:
         local_scorer = score

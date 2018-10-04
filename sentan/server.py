@@ -24,7 +24,7 @@ COMMANDS = {
     '2': 'switch to another project',
     '3': 'close project',
     '4': 'make databases',
-    '5': '',
+    '5': 'start elly',
     '6': '',
     '7': 'list all exist projects',
     '8': 'print commands',
@@ -55,20 +55,19 @@ def init_register():
     #    'old':None,
     #}
 
-#def init_save_paths(register):
-#    global SAVE_OPTIONS
-#    SAVE_OPTIONS = {
-#        'RootCommon':register['root_struct']['Common'],
-#        'RootTemp':register['root_struct']['TEMP'],
-#        'ProjStatData':register['proj_struct']['StatData'],
-#        'ProjRes':register['proj_struct']['Results'],
-#        'ProjConcls':register['proj_struct']['Conclusions'],
-#        'ProjTemp':register['proj_struct']['TEMP']
-#    }
-
 def make_dtl(load_dir_name):
+    if 'proj_name' not in GLOBS:
+        return 'ERROR! There is no current project! Plese, chose one'
     dtl = importlib.import_module('sentan.textproc.divtoklem')
     pr = Process(target = dtl.main, args=(GLOBS, load_dir_name))
+    pr.start()
+    pr.join()
+
+def start_elly(cpus, start):
+    if 'proj_name' not in GLOBS:
+        return 'ERROR! There is no current project! Plese, chose one'
+    elly = importlib.import_module('sentan.multiproc.elly_mp_n')
+    pr = Process(target=elly.main, args=(GLOBS, LOCK, cpus, start))
     pr.start()
     pr.join()
 
@@ -86,7 +85,7 @@ def interface():
     reg = dirman.Registrator(GLOBS, GLOBS['root_struct'])
     print_commands()
     while True:
-        breaker = input('==>Type command here: ')
+        breaker = input('\n==>Type command here: ')
         if breaker == '0':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
             for item in GLOBS.items():
@@ -104,6 +103,13 @@ def interface():
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
             load_dir_name = input('Type raw acts folder: ')
             make_dtl(load_dir_name)
+            print_commands('\t')
+        elif breaker == '5':
+            print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
+            cpus, start = input(
+                'Type number of workerks and start value here: '
+            ).split(' ')
+            start_elly(cpus, start)
             print_commands('\t')
         elif breaker == '7':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))

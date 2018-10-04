@@ -206,11 +206,13 @@ def make_tok_lem_bigr_indx(paths, inden=''):
         paths['proj_struct']['StatData']
     )
 
-def main(paths, load_dir_name, inden='\t'):
-    print(inden+'Starting dtl module')
-    print(inden*2+'first func!')
+def main(paths, load_dir_name, inden=''):
+    print('='*80)
+    print('='*80)
+    print(inden*2+'Starting acts separation!')
     raw_files_to_db(paths, load_dir_name)
-    print(inden*2+'second func!')
+    print('='*80)
+    print(inden*2+'Starting text preprocessing!')
     make_tok_lem_bigr_indx(paths)
 
 

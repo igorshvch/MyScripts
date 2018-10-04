@@ -6,21 +6,9 @@ from sentan.stringbreakers import (
     BGRINR_B, DCTKEY_B, KEYVAL_B, INDEXP_B
 )
 
-__version__ = '0.1'
+__version__ = '0.2.1'
 
 ###Content=====================================================================
-class DataStore():
-    '''
-    Storage for different text information units with arbitrary structure
-    '''
-    def __init__(self):
-        self.vocab = Counter()
-    
-    def words_count(self, act):
-        voc = self.vocab
-        for par in act:
-            voc.update(par)
-
 def bigrams_intersection(tokens_list, stpw):
     #Initialize local funcs:
     crbg = create_bigrams
@@ -32,12 +20,6 @@ def bigrams_intersection(tokens_list, stpw):
 def clean_txt_and_remove_stpw(par, sep, stpw):
     cleaned = [word for word in par.split(sep) if word not in stpw]
     return ' '.join(cleaned)
-
-#def clean_txt_and_remove_stpw_add_bigrams(par, sep, stpw):
-#    crtbgr = create_bigrams
-#    cleaned = [word for word in par.split(sep) if word not in stpw]
-#    cleaned += crtbgr(cleaned)
-#    return ' '.join(cleaned)
 
 def clean_txt_and_remove_stpw_add_bigrams_splitted(lemmed_pars,
                                                    par_len,
@@ -79,15 +61,6 @@ def create_bigrams(tokens_list):
         for i in range(1, len(tokens_list), 1)
     ]
     return holder
-
-#def create_ngrams(tokens_list, n=3):
-#    separator = BGRINR_B
-#    holder=[]
-#    holder = [
-#        separator.join((tokens_list[i-1], tokens_list[i]))
-#        for i in range(1, len(tokens_list), 1)
-#    ]
-#    return holder
     
 def create_indexdct_from_tokens_list(tokens_list):
     separator = DCTKEY_B
