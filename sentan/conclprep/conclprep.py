@@ -1,9 +1,10 @@
 import re
 from collections import deque
 from sentan.gui.dialogs import ffp, fdp, pmb
+from sentan.lowlevel import rwtool
 from sentan import dirman
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 ###Content=====================================================================
 QUEST = '[0-9] [.0-9]+ ?[.0-9]*? .+'
@@ -199,7 +200,7 @@ def exclude_input_concl_in_stored_ones(lst_of_concls, store):
         res.append(store[ind])
     return res
 
-def main_include():
+def main_include(paths):
     from writer import writer
     list_of_input_concls = clean_input_concls()
     list_of_processed_concls = (
@@ -210,9 +211,13 @@ def main_include():
         list_of_processed_concls
     )
     writer(dct.items(), 'found_concls', mode='w')
-    return result
+    rwtool.save_obj(
+        result,
+        'concls{}'.format(len(result)),
+        paths['proj_struct']['Conclusions']
+    )
 
-def main_exclude():
+def main_exclude(paths):
     list_of_input_concls = clean_input_concls()
     list_of_processed_concls = (
         dct_to_list_of_concls(clean_output_concls())
@@ -222,7 +227,11 @@ def main_exclude():
         list_of_input_concls,
         list_of_processed_concls
     )
-    return result
+    rwtool.save_obj(
+        result,
+        'concls{}'.format(len(result)),
+        paths['proj_struct']['Conclusions']
+    )
 
 
 ###Testing=====================================================================

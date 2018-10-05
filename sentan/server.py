@@ -58,14 +58,14 @@ def init_register():
 def form_concl():
     cnp = importlib.import_module('sentan.conclprep.conclprep')
     tipe = None
-    while tipe == 'include' or tipe == 'exclude':
+    while tipe != 'include' and tipe != 'exclude':
         tipe = input('Chose type of concl cleaning (include r exclude): ')
         if tipe != 'include' and tipe != 'exclude':
             print('ERROR! Incorrect input! Please, chose correct option!')
     if tipe == 'include':
-        cnp.main_include()
+        cnp.main_include(GLOBS)
     else:
-        cnp.main_exclude()
+        cnp.main_exclude(GLOBS)
 
 def make_dtl():
     load_dir_name = input('Type raw acts folder: ')

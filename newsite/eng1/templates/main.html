@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Main-Page{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="testtext">Введите текст ниже</label>
+    <textarea rows="10" cols="45" name="testtext" id="testtext"></textarea>
+    <input type="submit" value="Добавить шаблон">
+  </form>
+{% endblock %}
