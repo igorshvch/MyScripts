@@ -10,7 +10,7 @@ class DataBase():
                  base_name):
         self.conn = None 
         self.cur = None
-        self.path = path.joinpath(base_name)
+        self.path = path.joinpath(base_name).with_suffix('.db')
         self.open(
             self.path
         )

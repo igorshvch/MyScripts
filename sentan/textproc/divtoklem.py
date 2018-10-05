@@ -19,7 +19,7 @@ from sentan.stringbreakers import (
     RAWPAR_B, TOKLEM_B, BGRSEP_B, DCTITM_B
 )
 
-__version__ = '0.6.1'
+__version__ = '0.6.2'
 
 ###Content=====================================================================
 def raw_files_to_db(paths,
@@ -35,7 +35,7 @@ def raw_files_to_db(paths,
     words_store = set()
     lemz = mypars.PARSER
     #Initiate concls loading:
-    path = paths['root_struct']['RawText'].joinpath(load_dir_name)
+    path = paths['proj_struct']['RawText']
     raw_files = (
         read_text(p) for p
         in collect_exist_files(top_dir=path, suffix='.txt')

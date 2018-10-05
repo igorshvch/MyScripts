@@ -6,14 +6,13 @@ import pathlib as pthl
 
 from sentan import dirman
 
-__version__='0.0.1'
+__version__='0.1.1'
 
 #CONTENT=======================================================================
 LOCK = Lock()
 
 ROOT_STRUCT = {
     'Root': (pthl.Path().home().joinpath('TextProcessing')),
-    'RawText': (pthl.Path().home().joinpath('TextProcessing','RawText')),
     'Projects': (pthl.Path().home().joinpath('TextProcessing','Projects')),
     'TEMP':(pthl.Path().home().joinpath('TextProcessing', '_TEMP')),
     'Common':(pthl.Path().home().joinpath('TextProcessing', 'CommonData'))
@@ -23,9 +22,10 @@ COMMANDS = {
     '1': 'create new project',
     '2': 'switch to another project',
     '3': 'close project',
-    '4': 'make databases',
+    '4': 'form concls',
+    '4.1': 'make databases',
     '5': 'start elly',
-    '6': '',
+    '6': 'write to file',
     '7': 'list all exist projects',
     '8': 'print commands',
     '9': 'end program',
@@ -38,7 +38,6 @@ def init_register():
     #GLOBS = {
     #    'root_struct': {
     #        'Root':None,
-    #        'RawText':None,
     #        'Projects':None,
     #        'TEMP':None,
     #        'Common':None
@@ -48,6 +47,7 @@ def init_register():
     #        'TEMP':None,
     #        'Conclusions':None,
     #        'StatData':None,
+    #        'RawText':None,
     #        'Results':None
     #    },
     #    'proj_path':None,
@@ -55,7 +55,20 @@ def init_register():
     #    'old':None,
     #}
 
-def make_dtl(load_dir_name):
+def form_concl():
+    cnp = importlib.import_module('sentan.conclprep.conclprep')
+    tipe = None
+    while tipe == 'include' or tipe == 'exclude':
+        tipe = input('Chose type of concl cleaning (include r exclude): ')
+        if tipe != 'include' and tipe != 'exclude':
+            print('ERROR! Incorrect input! Please, chose correct option!')
+    if tipe == 'include':
+        cnp.main_include()
+    else:
+        cnp.main_exclude()
+
+def make_dtl():
+    load_dir_name = input('Type raw acts folder: ')
     if 'proj_name' not in GLOBS:
         return 'ERROR! There is no current project! Plese, chose one'
     dtl = importlib.import_module('sentan.textproc.divtoklem')
@@ -71,6 +84,10 @@ def start_elly(cpus, start):
     pr.start()
     pr.join()
 
+def write_output():
+    op = importlib.import_module('sentan.output')
+    op.write_output_to_file()
+
 def print_commands(inden=''):
     print('Commands:')
     for key in sorted(COMMANDS.keys()):
@@ -82,7 +99,7 @@ def interface():
     init_register()
     if not GLOBS['root_struct']['Root'].exists():
         dirman.create_and_register_root_struct(GLOBS['root_struct'])
-    reg = dirman.Registrator(GLOBS, GLOBS['root_struct'])
+    reg = dirman.Registrator(GLOBS)
     print_commands()
     while True:
         breaker = input('\n==>Type command here: ')
@@ -101,8 +118,10 @@ def interface():
             reg.close_current_project()
         elif breaker == '4':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
-            load_dir_name = input('Type raw acts folder: ')
-            make_dtl(load_dir_name)
+            form_concl()
+        elif breaker == '4.1':
+            print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
+            make_dtl()
             print_commands('\t')
         elif breaker == '5':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
@@ -111,6 +130,9 @@ def interface():
             ).split(' ')
             start_elly(cpus, start)
             print_commands('\t')
+        elif breaker == '6':
+            print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
+            write_output()
         elif breaker == '7':
             print('==Execute: \'{}\'==\n'.format(COMMANDS[breaker]))
             print('All exist projects:')

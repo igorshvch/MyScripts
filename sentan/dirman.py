@@ -1,6 +1,6 @@
 import time
 
-__version__ = '0.5'
+__version__ = '0.5.1'
 
 ###Content=====================================================================
 TODAY = time.strftime(r'%Y-%m-%d')
@@ -20,11 +20,16 @@ def load_to_register(func):
 
 class Registrator():
     project_inner_dirs = [
-        'ActsBase', 'StatData', 'Conclusions', 'Results', '_TEMP'
+        '_TEMP',
+        '01_Conclusions',
+        '02_RawText',
+        '03_ActsBase',
+        '04_StatData',
+        '05_Results',
     ]
 
-    def __init__(self, register, file_struct):
-        self.fs = file_struct
+    def __init__(self, register):
+        self.fs = register['root_struct']
         self.ps ={
             'proj_struct' : {},
             'proj_path' : None,
@@ -50,10 +55,10 @@ class Registrator():
         )
         self.ps['proj_path'].mkdir()
         for folder in Registrator.project_inner_dirs:
-            self.ps['proj_struct'][folder.lstrip('_')] = (
+            self.ps['proj_struct'][folder.strip('0123456789_')] = (
                 self.ps['proj_path'].joinpath(folder)
             )
-            self.ps['proj_struct'][folder.lstrip('_')].mkdir()
+            self.ps['proj_struct'][folder.strip('0123456789_')].mkdir()
     
     @load_to_register
     def register_old_projs(self):
@@ -81,7 +86,7 @@ class Registrator():
             self.fs['Projects'].joinpath(self.ps['proj_name'])
         )
         self.ps['proj_struct'] = {
-            p.name:p for p in
+            p.name.strip('0123456789_'):p for p in
             self.ps['proj_path'].iterdir()
             if p.is_dir()
         }

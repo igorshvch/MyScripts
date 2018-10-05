@@ -1,7 +1,7 @@
 # coding=cp1251
 
 from multiprocessing import (
-    Process, Queue, current_process, cpu_count
+    Process, Queue, current_process
 )
 import queue
 import os
@@ -38,26 +38,7 @@ from sentan.gui.dialogs import (
 __version__ = '0.3.6'
 
 ###Content=====================================================================
-CPUS = cpu_count()
-def init_paths(paths):
-    global VOCAB_NW
-    VOCAB_NW = rwtool.load_pickle(
-        str(paths['proj_struct']['StatData'].joinpath('vocab_nw'))
-    )
-    global TOTAL_PARS
-    TOTAL_PARS = rwtool.load_pickle(
-        str(paths['proj_struct']['StatData'].joinpath('total_lem_pars'))
-    )
-    global TOTAL_ACTS
-    TOTAL_ACTS = rwtool.load_pickle(
-        str(paths['proj_struct']['StatData'].joinpath('total_acts'))
-    )
-    global STPW
-    STPW = rwtool.load_pickle(
-        str(paths['root_struct']['Common'].joinpath('custom_stpw'))
-    )
-
-def processor(item):
+def processor(item, TOTAL_PARS, VOCAB_NW, STPW):
     #Initialise local vars=======================
     concl_lemmed, batch = item
     par_len = 140
@@ -206,7 +187,7 @@ def processor(item):
     results['YA'] = holder_YA
     return results
 
-def mp_processor(store1, store2, lock):
+def mp_processor(store1, store2, lock, TOTAL_PARS, VOCAB_NW, STPW):
     local_worker = processor
     pid = os.getpid()
     with lock:
@@ -229,7 +210,7 @@ def mp_processor(store1, store2, lock):
                     +'PID: {:>7}, starting new batch! '.format(pid)
                     +'Batch size: {:>7}'.format(len(item[1]))
                 )
-            result = local_worker(item)
+            result = local_worker(item, TOTAL_PARS, VOCAB_NW, STPW)
             with lock:
                 print('\tPID: {:>7}, result: DONE!'.format(pid)+26*'=')
             store2.put(
@@ -238,7 +219,7 @@ def mp_processor(store1, store2, lock):
             )
     store2.put(None)
 
-def mp_queue_fill(concl, inner_queue, diapason, lock, paths):
+def mp_queue_fill(concl, inner_queue, diapason, lock, paths, TOTAL_ACTS):
     pid = os.getpid()
     with lock:
         print(
@@ -316,19 +297,25 @@ def print_cust(message):
 
 def iteration(raw_concl, indx, save_path, cpus, local_lock, paths):
     #Initialise local vars=======================
+    VOCAB_NW = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('vocab_nw'))
+    )
+    TOTAL_PARS = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('total_lem_pars'))
+    )
+    TOTAL_ACTS = rwtool.load_pickle(
+        str(paths['proj_struct']['StatData'].joinpath('total_acts'))
+    )
+    STPW = rwtool.load_pickle(
+        str(paths['root_struct']['Common'].joinpath('custom_stpw'))
+    )
     pid = os.getpid()
     concl_lemmed = my_lem(my_tok(raw_concl))
-    #rwtool.save_object(
-    #    concl_lemmed, 'CL', r'C:\Users\EA-ShevchenkoIS\TextProcessing'
-    #)
     lock = local_lock
     t0 = time()
     TA_pars = TOTAL_PARS
     #===========================================
     PROC_UNITS = cpus
-    #Tests showed that 5 processing units compute data with optimal speed
-    #acts_gen = DB_load.iterate_row_retr(length=TA, output=OUTPUT)
-    #gen = ((concl_lemmed, batch) for batch in acts_gen)
     store1 = Queue(maxsize=PROC_UNITS)
     store2 = Queue(maxsize=PROC_UNITS)
     #Info========================================
@@ -344,10 +331,13 @@ def iteration(raw_concl, indx, save_path, cpus, local_lock, paths):
     #Multiprocessing starts======================
     QUEUE_FILLER = Process(
         target=mp_queue_fill,
-        args=(concl_lemmed, store1, PROC_UNITS, lock, paths)
+        args=(concl_lemmed, store1, PROC_UNITS, lock, paths, TOTAL_ACTS)
     )
     WORKERS_HOLDER = [
-        Process(target=mp_processor, args=(store1, store2, lock))
+        Process(
+            target=mp_processor,
+            args=(store1, store2, lock, TOTAL_ACTS, VOCAB_NW, STPW)
+        )
         for i in range(PROC_UNITS)
     ]
     RESULTS_CONSUMER = Process(
@@ -374,7 +364,6 @@ def iteration(raw_concl, indx, save_path, cpus, local_lock, paths):
     )
 
 def main(paths, local_lock, CP_UNITS=5, num_start=0):
-    init_paths(paths)
     message1 = (
         'Chose concls FILE and DIRECTORY to save results'
     )
@@ -382,10 +371,6 @@ def main(paths, local_lock, CP_UNITS=5, num_start=0):
     path = ffp()
     save_path = fdp()
     lock = local_lock
-    #message2 = (
-    #    'Number of CPUS: {:>2}.'.format(CPUS)
-    #    +'\nSelect number of worker processes:'
-    #)
     cpus = int(CP_UNITS)
     with lock:
         print(92*'=')

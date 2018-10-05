@@ -1,6 +1,5 @@
 from .lowlevel import rwtool
 from .lowlevel import texttools
-from . import elgranderoyal as elly
 from time import time
 from .gui.dialogs import (
     find_file_path as ffp,
@@ -32,36 +31,6 @@ def count_result_scores(res_dict, top=5):
         reverse=True
     )
 
-def start_up(concls):
-    '''Starts iterations on data'''
-    outter_holder = []
-    t0 = time()
-    t1 = time()
-    for idn, concl in enumerate(concls):
-        print(
-            (
-                23*'='
-                +'\n'
-                +'CONCLUSION # {} started.'.format(idn)
-                +'\nTime:\ntotal: {:3.5f}'.format(time()-t0)
-                +'\nsub: {:3.5f}'.format(time()-t1)
-            ),
-            end='\n'+23*'='+'\n'
-        )
-        t1 = time()
-        outter_holder.append(
-            (count_result_scores(elly.aggregate_model(concl), top=5))
-        )
-    print(
-        (
-            '\n'
-            +23*'='
-            +'\n'
-            +'Total time costs in mins: {:3.5f}'.format((time()-t0)/60)
-        )
-    )
-    return outter_holder
-
 def write_res(concls, results, dir_name=None):
     '''Write results to txt files'''
     assert dir_name
@@ -69,7 +38,7 @@ def write_res(concls, results, dir_name=None):
         r'C:\Users\EA-ShevchenkoIS\TextProcessing\Results\{}'.format(dir_name)
     )
     for idn, item in enumerate(concls):
-        rwtool.write_iter_to_csv(
+        rwtool.write_iterable_to_csv(
             path+'/res'+str(idn+1)+'.txt',
             results[idn],
             header=['act', 'score'],
@@ -197,9 +166,8 @@ def print_output_to_console_2(file_name1, file_name2, file_name3=None):
 
 def export_court_reqs(file_name):
     DB_load = mysqlite.DataBase(
-        raw_path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
-        base_name='TNBI',
-        tb_name=True
+        path = r'C:\Users\EA-ShevchenkoIS\TextProcessing\TNBI',
+        base_name='TNBI'
     )
     TA = DB_load.total_rows()
     OUTPUT = TA//10 if TA > 10 else TA//2
@@ -209,7 +177,7 @@ def export_court_reqs(file_name):
         for row in batch:
             ind, court, req, _, _, _, _, _ = row
             holder.append([ind, court, req])
-    rwtool.write_iter_to_csv(
+    rwtool.write_iterable_to_csv(
         'C:/Users/EA-ShevchenkoIS/TextProcessing/Results/{}.txt'.format(file_name),
         holder
     )
