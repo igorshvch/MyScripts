@@ -5,7 +5,7 @@ from .gui.dialogs import (
     find_file_path as ffp,
     find_directory_path as fdp
 )
-from . import mysqlite, dirman
+from . import mysqlite
 from .gui.dialogs import (
     ffp, fdp, pmb, giv
 )
