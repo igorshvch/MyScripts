@@ -210,10 +210,14 @@ def write_output_to_file():
                 print(item[0], item[1])
                 continue
             else:
-                if item[1] >= 3:
+                if item[1] >= 5: # Change threshold from 3 to 5
                     holder.append(
                         '{:<100s} :: {:>2d}'.format(item[0], item[1])
                     )
+        if len(holder) == 1:
+            holder.append( # Change threshold from 3 to 5
+                'ПОДХОДЯЩИХ АКТОВ НЕ НАЙДЕНО' # Change threshold from 3 to 5
+            ) # Change threshold from 3 to 5
         try:
             rwtool.write_text(
                 '\n'.join(holder),
