@@ -22,7 +22,7 @@ class RowsCollectror():
         self.rows = range(*rows)
         self.cols = cols
         self.break_vals = break_vals
-        self.wb=load_workbook(filename=r'C:\Users\EA-ShevchenkoIS\TextProcessing\_TEMP\Аннотация ПСП Поставка 59 выводов.xlsx')
+        self.wb=None #load_workbook(filename=r'C:\Users\EA-ShevchenkoIS\TextProcessing\_TEMP\Аннотация ПСП Поставка 59 выводов.xlsx')
         self.wsh = 'Лист1'
     
     def open_excel(self):
